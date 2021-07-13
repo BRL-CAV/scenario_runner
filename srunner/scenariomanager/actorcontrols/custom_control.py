@@ -108,13 +108,13 @@ class CustomControl(BasicControl):
             self._update_plan()
             #print('Waypoints updated')
 
-            #print('Buffer:')
-            for elm in self._local_planner._waypoint_buffer:
-                print(elm[0])
+            # #print('Buffer:')
+            # for elm in self._local_planner._waypoint_buffer:
+            #     print(elm[0])
 
-            #print('Queue:')
-            for elm in self._local_planner._waypoints_queue:
-                print(elm[0])
+            # #print('Queue:')
+            # for elm in self._local_planner._waypoints_queue:
+            #     print(elm[0])
 
         if self._offset_updated:
             self._offset_updated = False
