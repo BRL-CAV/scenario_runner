@@ -509,6 +509,11 @@ def setup_cavstar(client, world, the_map, vehicle):
 # Function to set up Sensor /saquib
 class SetupSensors:
     def __init__(self, client, world, vehicle):
+        self.gnss = None
+        self.imu = None
+        self.lid = None
+        self.ccam = None
+        self.radar = None
         try:
             print( 'Set up sensor and attach to vehicle' )
             try:

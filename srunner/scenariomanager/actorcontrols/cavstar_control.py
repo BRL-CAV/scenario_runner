@@ -48,6 +48,18 @@ class CavstarControl(BasicControl):
         #     # self._speeds = ast.literal_eval(args['speeds'])
         #     print(arg)
             
+    def __del__(self):
+        print("Destroying sensors")
+        if self.sensors.gnss is not None:
+            self.sensors.gnss.destroy()
+        if self.sensors.imu is not None:
+            self.sensors.imu.destroy()
+        if self.sensors.lid is not None:
+            self.sensors.lid.destroy()
+        if self.sensors.ccam is not None:
+            self.sensors.ccam.destroy()
+        if self.sensors.radar is not None:
+            self.sensors.radar.destroy()
 
     def reset(self):
         """
