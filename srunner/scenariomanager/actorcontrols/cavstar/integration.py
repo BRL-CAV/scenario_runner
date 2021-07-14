@@ -820,6 +820,14 @@ def wait_for_start(world, vehicle):
     global veh_utm_y
     global veh_hdg
 
+    global time_now 
+    global dow 
+    global delta
+    global sow
+    global time_sow
+    global diff_sow 
+    global timestamp_offset
+
     # Work out how many seconds have elapsed since the start of the week since this offset must be
     # added to the timestamps of the messages (esp GNSS types).
     time_now = datetime.now()
@@ -878,6 +886,7 @@ def wait_for_start(world, vehicle):
 # Run vehicle with CAVstar
 def run_step(world, the_map, viewer, vehicle):
     global gnss_riff_message
+    global veh_control_riff_client
 
     global steering_lock_angle_rad
 
@@ -950,7 +959,6 @@ def run_step(world, the_map, viewer, vehicle):
         mems_riff_message = gnss_riff_client.receive()
         lane_riff_message = lane_riff_client.receive()
 
-        print(ccam_queue.qsize())
         if ccam_queue.qsize() > 0:
             if want_car_camera_debug_filenames:
                 if tron:
@@ -984,6 +992,8 @@ def run_step(world, the_map, viewer, vehicle):
                     req_throttle     = riff_MC_SVC.throttle
                     req_brake        = riff_MC_SVC.brake
                     req_steer_torque = riff_MC_SVC.steering_torque
+                    if req_throttle:
+                        print("----", req_throttle)
                     #print( 'Read SVC : ReqThrot:', round( req_throttle, 4), '  ReqStT:', round( req_steer_torque, 6), '  ReqBr:', round( req_brake,2 ) )
                 else:
                     print( 'Unexpected vehicle controller motion length', length )
@@ -1043,9 +1053,11 @@ def run_step(world, the_map, viewer, vehicle):
             #if tron:
             #    print( 'Throttle:', round( veh_throttle, 2), '   Steer:', round( veh_steer * steering_lock_angle_rad, 1), '  Brake:', round( veh_brake,2 ) )
 
+            # print(veh_throttle, -1.0 * veh_steer, veh_brake)
             vehicle.apply_control( carla.VehicleControl( throttle = veh_throttle, steer = -1.0 * veh_steer, brake = veh_brake ) )
 
             # Must feedback state of the motion to the controller in order to set the heading and the timestamp for it
+            
             riff_MC_SVF.timestamp = timestamp_offset + now
             riff_MC_SVF.distance_left = distance_left
             riff_MC_SVF.distance_right = distance_right
