@@ -5,7 +5,9 @@
 #
 import ctypes, os
 
-if os.name == 'posix': rifflib = ctypes.CDLL( '/home/saquib/work/scenario_runner/srunner/scenariomanager/actorcontrols/cavstar/librifflib.so' )
+SCENARIO_RUNNER_ROOT = os.getenv('SCENARIO_RUNNER_ROOT')
+
+if os.name == 'posix': rifflib = ctypes.CDLL( SCENARIO_RUNNER_ROOT + '/srunner/scenariomanager/actorcontrols/cavstar/librifflib.so' )
 if os.name == 'nt': rifflib = ctypes.CDLL( 'x64/Release/rifflib.dll' )
 
 # Define the generic RIFF message used to send and receive data

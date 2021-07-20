@@ -1,15 +1,15 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO>
-  <FileHeader author="BRL OpenSCENARIO Editor" date="2021-07-09T15:27:48" description="CARLA:exported" revMajor="1" revMinor="0"/>
+  <FileHeader author="BRL OpenSCENARIO Editor" date="2021-07-19T13:46:04" description="CARLA:exported" revMajor="1" revMinor="0"/>
   <CatalogLocations>
     <VehicleCatalog>
-      <Directory path="/home/saquib/work/cav-tests/catalogs/vehicles"/>
+      <Directory path="/home/saquib/.jenkins/workspace/CarlaBRLPipeline/cav-tests/catalogs/vehicles"/>
     </VehicleCatalog>
     <MiscObjectCatalog>
-      <Directory path="/home/saquib/work/cav-tests/catalogs/misc_objects"/>
+      <Directory path="/home/saquib/.jenkins/workspace/CarlaBRLPipeline/cav-tests/catalogs/misc_objects"/>
     </MiscObjectCatalog>
     <EnvironmentCatalog>
-      <Directory path="/home/saquib/work/cav-tests/catalogs/environments"/>
+      <Directory path="/home/saquib/.jenkins/workspace/CarlaBRLPipeline/cav-tests/catalogs/environments"/>
     </EnvironmentCatalog>
   </CatalogLocations>
   <RoadNetwork>
@@ -18,10 +18,7 @@
   </RoadNetwork>
   <Entities>
     <ScenarioObject name="EGO">
-      <CatalogReference catalogName="VehicleCatalog" entryName="vehicle.audi.tt"/>
-    </ScenarioObject>
-    <ScenarioObject name="CAR1">
-      <CatalogReference catalogName="VehicleCatalog" entryName="vehicle.citroen.c3"/>
+      <CatalogReference catalogName="VehicleCatalog" entryName="vehicle.brl.bus"/>
     </ScenarioObject>
   </Entities>
   <Storyboard>
@@ -49,7 +46,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition h="-1.1387771691475954" x="111.869" y="-284.184" z="2.0"/>
+                <WorldPosition h="-1.1571356200149532" x="104.097" y="-259.609" z="2.0"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -58,37 +55,8 @@
               <AssignControllerAction>
                 <Controller name="EGOAgent">
                   <Properties>
-                    <Property name="module" value="cavstar_control"/>
-                    <Property name="consider_obstacles" value="False"/>
-                  </Properties>
-                </Controller>
-              </AssignControllerAction>
-              <OverrideControllerValueAction>
-                <Throttle active="false" value="0"/>
-                <Brake active="false" value="0"/>
-                <Clutch active="false" value="0"/>
-                <ParkingBrake active="false" value="0"/>
-                <SteeringWheel active="false" value="0"/>
-                <Gear active="false" number="0"/>
-              </OverrideControllerValueAction>
-            </ControllerAction>
-          </PrivateAction>
-        </Private>
-        <Private entityRef="CAR1">
-          <PrivateAction>
-            <TeleportAction>
-              <Position>
-                <WorldPosition h="-1.1181846176705255" x="129.752" y="-322.969" z="2.0"/>
-              </Position>
-            </TeleportAction>
-          </PrivateAction>
-          <PrivateAction>
-            <ControllerAction>
-              <AssignControllerAction>
-                <Controller name="CAR1Agent">
-                  <Properties>
                     <Property name="module" value="custom_control"/>
-                    <Property name="speeds" value="{'7': 2, '13': 10}"/>
+                    <Property name="speeds" value="{'0': 5, '1': 10, '2': 10, '3': 20, '4': 5, '5': 5}"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
@@ -107,19 +75,19 @@
     </Init>
     <Story name="Auto-gen">
       <Act name="Behavior">
-        <ManeuverGroup maximumExecutionCount="1" name="CAR1ManeuverAutopilot">
+        <ManeuverGroup maximumExecutionCount="1" name="EGOManeuverAutopilot">
           <Actors selectTriggeringEntities="false">
-            <EntityRef entityRef="CAR1"/>
+            <EntityRef entityRef="EGO"/>
           </Actors>
-          <Maneuver name="CAR1Autopilot">
-            <Event name="CAR1SpeedControl" priority="parallel">
-              <Action name="CAR1SpeedControl">
+          <Maneuver name="EGOAutopilot">
+            <Event name="EGOSpeedControl" priority="parallel">
+              <Action name="EGOSpeedControl">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
                       <SpeedActionDynamics dynamicsDimension="distance" dynamicsShape="step" value="50"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="5.555555555555555"/>
+                        <AbsoluteTargetSpeed value="0.0"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -135,95 +103,40 @@
                 </ConditionGroup>
               </StartTrigger>
             </Event>
-            <Event name="CAR1FollowRoute" priority="parallel">
-              <Action name="CAR1FollowRoute">
+            <Event name="EGOFollowRoute" priority="parallel">
+              <Action name="EGOFollowRoute">
                 <PrivateAction>
                   <RoutingAction>
                     <AssignRouteAction>
-                      <Route closed="false" name="CAR1Lane">
+                      <Route closed="false" name="EGOLane">
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="132.26424216126102" y="-330.325065946751" z="0.0"/>
+                            <WorldPosition x="109.94267596562322" y="-272.81599720687717" z="0.0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="135.61461770197462" y="-336.5106106259897" z="0.0"/>
+                            <WorldPosition x="138.96518687092697" y="-335.34051139493647" z="0.0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="138.96496906406213" y="-343.19767104546816" z="0.0"/>
+                            <WorldPosition x="171.8129406238157" y="-400.70639277265514" z="0.0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="141.3102286490502" y="-347.2099135061947" z="0.0"/>
+                            <WorldPosition x="222.3858805214016" y="-490.31190553812087" z="0.0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="143.32043546852304" y="-351.05496976562654" z="0.0"/>
+                            <WorldPosition x="255.2244489279573" y="-540.129627803512" z="0.0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="144.82806915602174" y="-354.5656611546928" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="146.50323714941413" y="-357.7420085705888" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="148.34592379721266" y="-361.08553283145" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="149.8535657434781" y="-364.0946983683879" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="151.528753078352" y="-366.4351754194012" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="152.7012207268327" y="-369.77876577575904" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="154.5438824369174" y="-373.28946451648" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="156.21900925442944" y="-376.96732793957517" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="158.0616895115303" y="-379.80933164996844" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="159.2342833453463" y="-382.14979175790324" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="161.57943592637412" y="-387.66657115255566" z="0.0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="162.8357852370521" y="-390.09061728033737" z="0.0"/>
+                            <WorldPosition x="291.7568416322617" y="-589.9472756056064" z="0.0"/>
                           </Position>
                         </Waypoint>
                       </Route>
@@ -257,12 +170,12 @@
             <Condition conditionEdge="rising" delay="0" name="EndCondition">
               <ByEntityCondition>
                 <TriggeringEntities triggeringEntitiesRule="any">
-                  <EntityRef entityRef="CAR1"/>
+                  <EntityRef entityRef="EGO"/>
                 </TriggeringEntities>
                 <EntityCondition>
                   <ReachPositionCondition tolerance="2">
                     <Position>
-                      <WorldPosition x="162.8357852370521" y="-390.09061728033737" z="0.0"/>
+                      <WorldPosition x="291.7568416322617" y="-589.9472756056064" z="0.0"/>
                     </Position>
                   </ReachPositionCondition>
                 </EntityCondition>
@@ -270,7 +183,7 @@
             </Condition>
             <Condition conditionEdge="rising" delay="0" name="stop_criteria_0">
               <ByValueCondition>
-                <SimulationTimeCondition rule="greaterThan" value="30"/>
+                <SimulationTimeCondition rule="greaterThan" value="50"/>
               </ByValueCondition>
             </Condition>
           </ConditionGroup>
