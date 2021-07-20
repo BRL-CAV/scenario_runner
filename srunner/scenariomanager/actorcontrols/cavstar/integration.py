@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 import sys
-sys.path.append( '/home/saquib/work/scenario_runner/srunner/scenariomanager/actorcontrols/cavstar' )
+SCENARIO_RUNNER_ROOT = os.getenv('SCENARIO_RUNNER_ROOT')
+sys.path.append( SCENARIO_RUNNER_ROOT + '/srunner/scenariomanager/actorcontrols/cavstar' )
 
 
 #####################################################################################################
