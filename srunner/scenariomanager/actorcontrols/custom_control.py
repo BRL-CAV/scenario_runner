@@ -129,12 +129,12 @@ class CustomControl(BasicControl):
         #print("Current waypoint: %s" % self._currentWaypoint)
         #print("Next waypoint: %s" % self._nextWaypoint)
         #print("Current Speed: %s" % (math.sqrt(self._actor.get_velocity().x**2 + self._actor.get_velocity().y**2)))
-
-        if str(self._currentWaypoint) in self._speeds.keys():
-            changed_speed = float(self._speeds[str(self._currentWaypoint)])
-            #print(" Target speed: %i, change by: %i" % (self._target_speed, changed_speed))
-            self._target_speed = self._target_speed + changed_speed
-            self._speeds.pop(str(self._currentWaypoint), None)
+        if self._speeds:
+            if str(self._currentWaypoint) in self._speeds.keys():
+                changed_speed = float(self._speeds[str(self._currentWaypoint)])
+                #print(" Target speed: %i, change by: %i" % (self._target_speed, changed_speed))
+                self._target_speed = self._target_speed + changed_speed
+                self._speeds.pop(str(self._currentWaypoint), None)
 
             
             
