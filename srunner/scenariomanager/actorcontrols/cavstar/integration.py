@@ -1,11 +1,5 @@
 #!/usr/bin/python3
 
-import sys
-import os
-SCENARIO_RUNNER_ROOT = os.getenv('SCENARIO_RUNNER_ROOT')
-sys.path.append( SCENARIO_RUNNER_ROOT + '/srunner/scenariomanager/actorcontrols/cavstar' )
-
-
 #####################################################################################################
 #
 #      Copyright (c) Fusion Processing Ltd 2018-2021
@@ -27,8 +21,7 @@ server_ip_addr = '91.227.124.104'
 want_synchronous_mode = False
 
 # Name of car / bus model
-# vehicle_blueprint_name = 'vehicle.brl.bus'
-vehicle_blueprint_name = 'vehicle.seat.leon'
+vehicle_blueprint_name = 'vehicle.brl.bus'
 
 # Set this to True if you just want the vehicle to auto drive around the map generating UTM coords
 gather_gnss_coords_for_map = False
@@ -48,7 +41,7 @@ want_lane_invasions = False
 # Want Lane Offsets & debugging.
 # If debug then it draws arrows and prints extra text based on car to lane offset
 want_lane_offsets = True
-want_lane_offset_debug = True
+want_lane_offset_debug = False
 
 # Save images from front of car to dir
 # NOTE - at present were using async mode and it takes time to save the images which kills the
@@ -64,7 +57,10 @@ next_cam_frame = 1
 want_viewer_nailed_to_front_of_vehicle = False
 
 # Radar
-want_radar_sensor = True
+want_radar_sensor = False
+
+# Want other static actors in the way
+want_other_objects = True
 
 
 ####################################################################################################
@@ -80,10 +76,12 @@ print( 'Setting up Carla python interface' )
 carla_version = '0.9.11'
 carla_map_path = ''
 if os.name == 'posix':
+    SCENARIO_RUNNER_ROOT = os.getenv('SCENARIO_RUNNER_ROOT')
+    sys.path.append( SCENARIO_RUNNER_ROOT + '/srunner/scenariomanager/actorcontrols/cavstar' )
+
     if platform.node() == 'punch':
         # TODO - this will most likely need to be relative to this interface
         # but for some reason it dont grok with ~/Carla/...
-        #carla_dir = '/home/stevee/Carla/Carla_Export_Dists'
         carla_dir = '/home/stevee/Carla/Carla_BRL_BusModel/LinuxNoEditor';
         carla_map_path = '/Game/map_package/Maps/'
         print( 'Setting up for Punch using Carla version ' + carla_version )
@@ -95,6 +93,7 @@ if os.name == 'posix':
         carla_map_path = '/Game/map_package/Maps/'
         print( 'Setting up for Zotac using Carla version ' + carla_version )
         carla_egg = carla_dir + '/PythonAPI/carla/dist/carla-' + carla_version + '-py3.6-linux-x86_64.egg'
+        sys.path.append( '/home/saquib/work/scenario_runner/srunner/scenariomanager/actorcontrols/cavstar' )
         sys.path.append( carla_egg )
         can_set_gnss_tick = 1
     elif platform.node() == 'cav-sim':
@@ -110,14 +109,14 @@ if os.name == 'posix':
 elif os.name == 'nt':
     print( 'Setting up for Windows' )
     sys.path.append('D:/WindowsNoEditor/PythonAPI/carla/dist/carla-' + carla_version + '-py3.7-win-amd64.egg')
-    
+
 
 ####################################################################################################
 #
 #  Imports
 #
 ####################################################################################################
-import math, time
+import math, time, re
 import rifflib, ctypes
 from datetime import datetime, timedelta
 from random import *
@@ -186,7 +185,7 @@ class Riff_MNC_SGLH(ctypes.Structure):
                  ('heading'           , ctypes.c_float   ),  # Degrees clockwise from true north
                  ('heading_rate'      , ctypes.c_float   ),  # Degrees per second
                  ('timestamp'         , ctypes.c_float   ),  # Seconds since start of GPS reference week
-                 ('padding'           , ctypes.c_int   ) ]   # Seconds since start of GPS reference week
+                 ('padding'           , ctypes.c_int   ) ]
 
 # Sim Mems Data "SMSD"
 class Riff_MNC_SMSD(ctypes.Structure):
@@ -230,13 +229,14 @@ gnss_riff_message = rifflib.Message()
 mems_riff_message = rifflib.Message()
 lane_riff_message = rifflib.Message()
 radar_riff_message = rifflib.Message()
+other_objs_riff_message = rifflib.Message()
 veh_control_riff_message  = rifflib.Message()
 
 # Initialise the RIFF clients for the ADS to connect to
 gnss_riff_client         = rifflib.RiffClient( 6163, server_ip_addr, 5, 'carla non critical gnss' )
 mems_riff_client         = rifflib.RiffClient( 6164, server_ip_addr, 5, 'carla non critical mems' )
 lane_riff_client         = rifflib.RiffClient( 6166, server_ip_addr, 5, 'carla non critical lane' )
-radar_riff_client        = rifflib.RiffClient( 6166, server_ip_addr, 5, 'carla non critical radar' )
+radar_riff_client        = rifflib.RiffClient( 6167, server_ip_addr, 5, 'carla non critical radar' )
 veh_control_riff_client  = rifflib.RiffClient( 6168, server_ip_addr, 5, 'carla critical veh ctl' )
 
 
@@ -814,6 +814,7 @@ last_update_SMSD_time = 0.0
 last_update_SLP_time = 0.0
 last_update_SLP_time_debug = 0.0
 last_update_gnss_time = 0.0
+last_update_SOBS_time = 0.0
 
 # Before get going proper, send a message about where the car is.
 wait_for_start = 1
@@ -949,22 +950,23 @@ def run_step(world, the_map, viewer, vehicle):
     global last_update_SLP_time 
     global last_update_SLP_time_debug
     global last_update_gnss_time
+    global last_update_SOBS_time
     try:
-
         # Before get going proper, send a message about where the car is.
- 
         frame_counter = frame_counter + 1
         now = GetMsFromStart() / 1000.0
 
         gnss_riff_client.connect()
         mems_riff_client.connect()
         lane_riff_client.connect()
+        radar_riff_client.connect()
         veh_control_riff_client.connect()
 
         # Were not expecting to receive anything from these only write back to controller so keep them flushed
         gnss_riff_message = gnss_riff_client.receive()
         mems_riff_message = gnss_riff_client.receive()
         lane_riff_message = lane_riff_client.receive()
+        radar_riff_message = radar_riff_client.receive()
 
         if ccam_queue.qsize() > 0:
             if want_car_camera_debug_filenames:
@@ -982,6 +984,11 @@ def run_step(world, the_map, viewer, vehicle):
         if want_viewer_nailed_to_front_of_vehicle:
             veh_trans = vehicle.get_transform()
             view_trans = veh_trans
+            veh_ang = math.radians( (360 + veh_trans.rotation.yaw) % 360.0 )
+            vi = math.cos( veh_ang )
+            vj = math.sin( veh_ang )
+            view_trans.location.x = veh_trans.location.x + 2.0 * vi
+            view_trans.location.y = veh_trans.location.y + 2.0 * vj
             view_trans.location.z = veh_trans.location.z + 3.0
             viewer.set_transform( view_trans )
 
@@ -999,8 +1006,8 @@ def run_step(world, the_map, viewer, vehicle):
                     req_throttle     = riff_MC_SVC.throttle
                     req_brake        = riff_MC_SVC.brake
                     req_steer_torque = riff_MC_SVC.steering_torque
-                    if req_throttle:
-                        print("----", req_throttle)
+                    #if req_throttle:
+                    #    print("----", req_throttle)
                     #print( 'Read SVC : ReqThrot:', round( req_throttle, 4), '  ReqStT:', round( req_steer_torque, 6), '  ReqBr:', round( req_brake,2 ) )
                 else:
                     print( 'Unexpected vehicle controller motion length', length )
@@ -1064,7 +1071,6 @@ def run_step(world, the_map, viewer, vehicle):
             vehicle.apply_control( carla.VehicleControl( throttle = veh_throttle, steer = -1.0 * veh_steer, brake = veh_brake ) )
 
             # Must feedback state of the motion to the controller in order to set the heading and the timestamp for it
-            
             riff_MC_SVF.timestamp = timestamp_offset + now
             riff_MC_SVF.distance_left = distance_left
             riff_MC_SVF.distance_right = distance_right
@@ -1082,6 +1088,7 @@ def run_step(world, the_map, viewer, vehicle):
             world.wait_for_tick()
         except Exception as ex:
             print('Exception: waiting for world tick:', ex )
+            sys.exit( 1 )
         now = GetMsFromStart() / 1000.0
 
         # Receive information from Carla and send to ADS
@@ -1390,6 +1397,67 @@ def run_step(world, the_map, viewer, vehicle):
             lane_riff_message.length = ctypes.sizeof( riff_MNC_SLP )
             lane_riff_message.data   = ctypes.byref(  riff_MNC_SLP )
             lane_riff_client.write( lane_riff_message );
+
+            if want_other_objects and ((now - last_update_SOBS_time) > 0.05):
+                last_update_SOBS_time = now
+
+                # Get stats about the vehicle
+                veh_trans = vehicle.get_transform()
+                veh_geo = the_map.transform_to_geolocation( veh_trans.location )
+                veh_utm = utm.from_latlon( veh_geo.latitude, veh_geo.longitude )
+                veh_ang = math.radians( (360 - veh_trans.rotation.yaw) % 360.0 )
+                vi = math.cos( veh_ang )
+                vj = math.sin( veh_ang )
+                veh_vel = vehicle.get_velocity()
+                mag_veh_vel = veh_vel.x*veh_vel.x + veh_vel.y*veh_vel.y        # Not doing z
+                if mag_veh_vel > 0.0:
+                    mag_veh_vel = math.sqrt( mag_veh_vel )
+
+                # Get a list of all other actors / objects
+                other_objects_array = []
+                num_other_objects = 0
+                actors  = world.get_actors()
+                if len( actors ) > 0:
+                    for actor in actors:
+                        if actor.type_id != vehicle_blueprint_name and (re.search("vehicle.*", actor.type_id) or re.search("walker.*", actor.type_id) ):
+                            oa_loc = actor.get_location()
+                            oa_vel = actor.get_velocity()
+                            oa_geo = the_map.transform_to_geolocation( oa_loc )
+                            oa_utm = utm.from_latlon( oa_geo.latitude, oa_geo.longitude )
+                            oa_ang = math.radians( (360 - veh_trans.rotation.yaw) % 360.0 )
+                            oai = math.cos( oa_ang )
+                            oaj = math.sin( oa_ang )
+                            v_oa_i = oa_utm[0] - veh_utm[0]
+                            v_oa_j = oa_utm[1] - veh_utm[1]
+                            v_dot_voa = vi*v_oa_i + vj*v_oa_j;
+                            v_x_voa   = vi*v_oa_j - vj*v_oa_i;
+                            oavi = oa_vel.x;
+                            oavj = oa_vel.y;                                  # Not doing z
+                            v_dot_oav = vi * oavi + vj * oavj;
+                            v_x_oav   = vi * oavj - vj * oavi;
+                            # These values are from the middle of the bus but we dont want to crash at the front
+                            # of it (where the radar would actually be situated. So move the range half a bus length
+                            # and half a car length closer and scale the cross prod by same amount.
+                            move_contact_dist = 8.0
+                            if v_dot_oav > move_contact_dist:
+                                scale = (v_dot_voa - move_contact_dist) / v_dot_voa
+                                v_dot_voa *= scale
+                                v_x_oav   *= scale
+
+                            if v_dot_voa > 0 and v_dot_voa < 300.0:
+                                other_objects_array.append( v_dot_voa )
+                                other_objects_array.append( v_x_voa )
+                                other_objects_array.append( v_dot_oav - mag_veh_vel )
+                                other_objects_array.append( v_x_oav )
+                                num_other_objects = num_other_objects + 1
+                                print( 'SOBS obj:', round( v_dot_voa, 1 ), round( v_x_voa, 1 ), round( v_dot_oav - mag_veh_vel, 1 ), round( v_x_oav, 1 ) )
+
+                if num_other_objects > 0:
+                    ctarray = (ctypes.c_float * (num_other_objects * 4))( *other_objects_array )
+                    other_objs_riff_message.tag = b'SOBS'
+                    other_objs_riff_message.length = ctypes.sizeof( ctypes.c_float ) * (num_other_objects * 4)
+                    other_objs_riff_message.data   = ctarray
+                    radar_riff_client.write( other_objs_riff_message );
 
     except KeyboardInterrupt:
         print( 'Keyboard interrupt, exiting...' )
