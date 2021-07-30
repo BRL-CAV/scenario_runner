@@ -15,7 +15,8 @@
 tron = True
 
 # IP of riff servers to connect to
-server_ip_addr = '91.227.124.104'
+#server_ip_addr = '91.227.124.104'
+server_ip_addr = '127.0.0.1'
 
 # We really want/need synchronous mode but it doesnt work properly
 want_synchronous_mode = False
@@ -40,7 +41,7 @@ want_lane_invasions = False
 
 # Want Lane Offsets & debugging.
 # If debug then it draws arrows and prints extra text based on car to lane offset
-want_lane_offsets = True
+want_lane_offsets = False
 want_lane_offset_debug = False
 
 # Save images from front of car to dir
@@ -244,6 +245,17 @@ veh_control_riff_client  = rifflib.RiffClient( 6168, server_ip_addr, 5, 'carla c
 #
 ####################################################################################################
 start_time = time.time()
+
+# Work out how many seconds have elapsed since the start of the week since this offset must be
+# added to the timestamps of the messages (esp GNSS types). This is only done once at start of app
+time_now = datetime.now()
+dow = time_now.isoweekday()
+delta = timedelta( days = -dow )
+sow = time_now + delta
+time_sow = datetime( sow.year, sow.month, sow.day, 0,0,0 )
+diff_sow = time_now - time_sow
+timestamp_offset = diff_sow.days * 86400 + diff_sow.seconds
+
 def GetMsFromStart():
     global start_time
     return int( (time.time() - start_time) * 1000.0 )
@@ -504,7 +516,7 @@ def setup_cavstar(client, world, the_map, vehicle):
     except Exception:
         print( 'Exception: Setting client timeout' )
         sys.exit( 1 )
-    
+
     return (viewer, )
 
 
@@ -516,6 +528,7 @@ class SetupSensors:
         self.lid = None
         self.ccam = None
         self.radar = None
+
         try:
             print( 'Set up sensor and attach to vehicle' )
             try:
@@ -797,16 +810,6 @@ veh_width = 1.8
 wheel_utm_x = 0.0
 wheel_utm_y = 0.0
 
-# Work out how many seconds have elapsed since the start of the week since this offset must be
-# added to the timestamps of the messages (esp GNSS types).
-time_now = datetime.now()
-dow = time_now.isoweekday()
-delta = timedelta( days = -dow )
-sow = time_now + delta
-time_sow = datetime( sow.year, sow.month, sow.day, 0,0,0 )
-diff_sow = time_now - time_sow
-timestamp_offset = diff_sow.days * 86400 + diff_sow.seconds
-
 frame_counter = 0
 last_update_SVF_time = 0.0
 last_update_SGLH_time = 0.0
@@ -827,24 +830,7 @@ def wait_for_start(world, vehicle):
     global veh_utm_x
     global veh_utm_y
     global veh_hdg
-
-    global time_now 
-    global dow 
-    global delta
-    global sow
-    global time_sow
-    global diff_sow 
     global timestamp_offset
-
-    # Work out how many seconds have elapsed since the start of the week since this offset must be
-    # added to the timestamps of the messages (esp GNSS types).
-    time_now = datetime.now()
-    dow = time_now.isoweekday()
-    delta = timedelta( days = -dow )
-    sow = time_now + delta
-    time_sow = datetime( sow.year, sow.month, sow.day, 0,0,0 )
-    diff_sow = time_now - time_sow
-    timestamp_offset = diff_sow.days * 86400 + diff_sow.seconds
 
     global wait_for_start
     wait_for_start = 1
@@ -923,31 +909,13 @@ def run_step(world, the_map, viewer, vehicle):
     global veh_width
     global wheel_utm_x
     global wheel_utm_y
-
-    # Work out how many seconds have elapsed since the start of the week since this offset must be
-    # added to the timestamps of the messages (esp GNSS types).
-
-    global time_now 
-    global dow 
-    global delta
-    global sow
-    global time_sow
-    global diff_sow 
     global timestamp_offset
 
-    time_now = datetime.now()
-    dow = time_now.isoweekday()
-    delta = timedelta( days = -dow )
-    sow = time_now + delta
-    time_sow = datetime( sow.year, sow.month, sow.day, 0,0,0 )
-    diff_sow = time_now - time_sow
-    timestamp_offset = diff_sow.days * 86400 + diff_sow.seconds
-
-    global frame_counter 
-    global last_update_SVF_time 
-    global last_update_SGLH_time 
-    global last_update_SMSD_time 
-    global last_update_SLP_time 
+    global frame_counter
+    global last_update_SVF_time
+    global last_update_SGLH_time
+    global last_update_SMSD_time
+    global last_update_SLP_time
     global last_update_SLP_time_debug
     global last_update_gnss_time
     global last_update_SOBS_time
@@ -1014,7 +982,6 @@ def run_step(world, the_map, viewer, vehicle):
 
         if now - last_update_SVF_time > 0.1:
             dt = now - last_update_SVF_time;
-            last_update_SVF_time = now
 
             inc_dist = veh_spd * dt;
             distance_left  = distance_left  + inc_dist
@@ -1081,6 +1048,7 @@ def run_step(world, the_map, viewer, vehicle):
             veh_control_riff_message.length = ctypes.sizeof( riff_MC_SVF )
             veh_control_riff_message.data   = ctypes.byref(  riff_MC_SVF )
             veh_control_riff_client.write( veh_control_riff_message );
+            last_update_SVF_time = now
             #print( "Sent distance left,right as", round(distance_left,1), round(distance_right,1) )
             #print( 'Send SVF : turn_angle (in rads):', round( riff_MC_SVF.turning_angle,3) )
 
@@ -1089,6 +1057,8 @@ def run_step(world, the_map, viewer, vehicle):
         except Exception as ex:
             print('Exception: waiting for world tick:', ex )
             sys.exit( 1 )
+
+        # A world tick might take some time. So what is the new 'now'.
         now = GetMsFromStart() / 1000.0
 
         # Receive information from Carla and send to ADS
@@ -1398,66 +1368,66 @@ def run_step(world, the_map, viewer, vehicle):
             lane_riff_message.data   = ctypes.byref(  riff_MNC_SLP )
             lane_riff_client.write( lane_riff_message );
 
-            if want_other_objects and ((now - last_update_SOBS_time) > 0.05):
-                last_update_SOBS_time = now
+        if want_other_objects and ((now - last_update_SOBS_time) > 0.05):
+            last_update_SOBS_time = now
 
-                # Get stats about the vehicle
-                veh_trans = vehicle.get_transform()
-                veh_geo = the_map.transform_to_geolocation( veh_trans.location )
-                veh_utm = utm.from_latlon( veh_geo.latitude, veh_geo.longitude )
-                veh_ang = math.radians( (360 - veh_trans.rotation.yaw) % 360.0 )
-                vi = math.cos( veh_ang )
-                vj = math.sin( veh_ang )
-                veh_vel = vehicle.get_velocity()
-                mag_veh_vel = veh_vel.x*veh_vel.x + veh_vel.y*veh_vel.y        # Not doing z
-                if mag_veh_vel > 0.0:
-                    mag_veh_vel = math.sqrt( mag_veh_vel )
+            # Get stats about the vehicle
+            veh_trans = vehicle.get_transform()
+            veh_geo = the_map.transform_to_geolocation( veh_trans.location )
+            veh_utm = utm.from_latlon( veh_geo.latitude, veh_geo.longitude )
+            veh_ang = math.radians( (360 - veh_trans.rotation.yaw) % 360.0 )
+            vi = math.cos( veh_ang )
+            vj = math.sin( veh_ang )
+            veh_vel = vehicle.get_velocity()
+            mag_veh_vel = veh_vel.x*veh_vel.x + veh_vel.y*veh_vel.y        # Not doing z
+            if mag_veh_vel > 0.0:
+                mag_veh_vel = math.sqrt( mag_veh_vel )
 
-                # Get a list of all other actors / objects
-                other_objects_array = []
-                num_other_objects = 0
-                actors  = world.get_actors()
-                if len( actors ) > 0:
-                    for actor in actors:
-                        if actor.type_id != vehicle_blueprint_name and (re.search("vehicle.*", actor.type_id) or re.search("walker.*", actor.type_id) ):
-                            oa_loc = actor.get_location()
-                            oa_vel = actor.get_velocity()
-                            oa_geo = the_map.transform_to_geolocation( oa_loc )
-                            oa_utm = utm.from_latlon( oa_geo.latitude, oa_geo.longitude )
-                            oa_ang = math.radians( (360 - veh_trans.rotation.yaw) % 360.0 )
-                            oai = math.cos( oa_ang )
-                            oaj = math.sin( oa_ang )
-                            v_oa_i = oa_utm[0] - veh_utm[0]
-                            v_oa_j = oa_utm[1] - veh_utm[1]
-                            v_dot_voa = vi*v_oa_i + vj*v_oa_j;
-                            v_x_voa   = vi*v_oa_j - vj*v_oa_i;
-                            oavi = oa_vel.x;
-                            oavj = oa_vel.y;                                  # Not doing z
-                            v_dot_oav = vi * oavi + vj * oavj;
-                            v_x_oav   = vi * oavj - vj * oavi;
-                            # These values are from the middle of the bus but we dont want to crash at the front
-                            # of it (where the radar would actually be situated. So move the range half a bus length
-                            # and half a car length closer and scale the cross prod by same amount.
-                            move_contact_dist = 8.0
-                            if v_dot_oav > move_contact_dist:
-                                scale = (v_dot_voa - move_contact_dist) / v_dot_voa
-                                v_dot_voa *= scale
-                                v_x_oav   *= scale
+            # Get a list of all other actors / objects
+            other_objects_array = []
+            num_other_objects = 0
+            actors  = world.get_actors()
+            if len( actors ) > 0:
+                for actor in actors:
+                    if actor.type_id != vehicle_blueprint_name and (re.search("vehicle.*", actor.type_id) or re.search("walker.*", actor.type_id) ):
+                        oa_loc = actor.get_location()
+                        oa_vel = actor.get_velocity()
+                        oa_geo = the_map.transform_to_geolocation( oa_loc )
+                        oa_utm = utm.from_latlon( oa_geo.latitude, oa_geo.longitude )
+                        oa_ang = math.radians( (360 - veh_trans.rotation.yaw) % 360.0 )
+                        oai = math.cos( oa_ang )
+                        oaj = math.sin( oa_ang )
+                        v_oa_i = oa_utm[0] - veh_utm[0]
+                        v_oa_j = oa_utm[1] - veh_utm[1]
+                        v_dot_voa = vi*v_oa_i + vj*v_oa_j;
+                        v_x_voa   = vi*v_oa_j - vj*v_oa_i;
+                        oavi = oa_vel.x;
+                        oavj = oa_vel.y;                                  # Not doing z
+                        v_dot_oav = vi * oavi + vj * oavj;
+                        v_x_oav   = vi * oavj - vj * oavi;
+                        # These values are from the middle of the bus but we dont want to crash at the front
+                        # of it (where the radar would actually be situated. So move the range half a bus length
+                        # and half a car length closer and scale the cross prod by same amount.
+                        move_contact_dist = 8.0
+                        if v_dot_oav > move_contact_dist:
+                            scale = (v_dot_voa - move_contact_dist) / v_dot_voa
+                            v_dot_voa *= scale
+                            v_x_oav   *= scale
 
-                            if v_dot_voa > 0 and v_dot_voa < 300.0:
-                                other_objects_array.append( v_dot_voa )
-                                other_objects_array.append( v_x_voa )
-                                other_objects_array.append( v_dot_oav - mag_veh_vel )
-                                other_objects_array.append( v_x_oav )
-                                num_other_objects = num_other_objects + 1
-                                print( 'SOBS obj:', round( v_dot_voa, 1 ), round( v_x_voa, 1 ), round( v_dot_oav - mag_veh_vel, 1 ), round( v_x_oav, 1 ) )
+                        if v_dot_voa > 0 and v_dot_voa < 300.0:
+                            other_objects_array.append( v_dot_voa )
+                            other_objects_array.append( v_x_voa )
+                            other_objects_array.append( v_dot_oav - mag_veh_vel )
+                            other_objects_array.append( v_x_oav )
+                            num_other_objects = num_other_objects + 1
+                            print( 'SOBS obj:', round( v_dot_voa, 1 ), round( v_x_voa, 1 ), round( v_dot_oav - mag_veh_vel, 1 ), round( v_x_oav, 1 ) )
 
-                if num_other_objects > 0:
-                    ctarray = (ctypes.c_float * (num_other_objects * 4))( *other_objects_array )
-                    other_objs_riff_message.tag = b'SOBS'
-                    other_objs_riff_message.length = ctypes.sizeof( ctypes.c_float ) * (num_other_objects * 4)
-                    other_objs_riff_message.data   = ctarray
-                    radar_riff_client.write( other_objs_riff_message );
+            if num_other_objects > 0:
+                ctarray = (ctypes.c_float * (num_other_objects * 4))( *other_objects_array )
+                other_objs_riff_message.tag = b'SOBS'
+                other_objs_riff_message.length = ctypes.sizeof( ctypes.c_float ) * (num_other_objects * 4)
+                other_objs_riff_message.data   = ctarray
+                radar_riff_client.write( other_objs_riff_message );
 
     except KeyboardInterrupt:
         print( 'Keyboard interrupt, exiting...' )
