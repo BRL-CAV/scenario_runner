@@ -60,3 +60,7 @@ License
 -------
 
 ScenarioRunner specific code is distributed under MIT License.
+
+```
+python scenario_runner.py --openscenario srunner/examples/BRL/OpenSCENARIO_manual.xosc
+```

@@ -15,8 +15,8 @@
 tron = True
 
 # IP of riff servers to connect to
-#server_ip_addr = '91.227.124.104'
-server_ip_addr = '127.0.0.1'
+server_ip_addr = '91.227.124.104'
+# server_ip_addr = '127.0.0.1'
 
 # We really want/need synchronous mode but it doesnt work properly
 want_synchronous_mode = False
