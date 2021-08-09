@@ -98,7 +98,7 @@
                 <ConditionGroup>
                   <Condition name="WeatherChangeStartTime" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="20" rule="greaterThan"/>
+                      <SimulationTimeCondition value="200000" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
