@@ -48,6 +48,11 @@ Use ARROWS or WASD keys for control.
 
 from __future__ import print_function
 
+import asyncio
+import websockets
+import pathlib
+import ssl
+import threading
 # ==============================================================================
 # -- imports -------------------------------------------------------------------
 # ==============================================================================
@@ -63,7 +68,10 @@ import argparse
 import logging
 import time
 import pygame
+import json
 
+FORWARD = 0
+STEER = 0
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
@@ -147,11 +155,33 @@ def game_loop(args):
         world = WorldSR(client.get_world(), hud, args)
         controller = KeyboardControl(world, args.autopilot)
 
+        control = carla.VehicleControl()
+
         clock = pygame.time.Clock()
         while True:
             clock.tick_busy_loop(60)
-            if controller.parse_events(client, world, clock):
-                return
+            
+            if FORWARD == 1:
+                control.throttle = min(control.throttle + 0.01, 0.7)
+            if FORWARD == -1:
+                control.brake = min(control.brake + 0.2, 1)
+
+            if FORWARD == 0:
+                control.throttle = 0
+                control.brake = 0
+
+            if STEER == 1:
+                control.steer = min(control.steer + 0.002, 0.2)
+            if STEER == -1:
+                control.steer = max(control.steer - 0.002, -0.2)
+
+            if STEER == 0:
+                control.steer = 0
+
+
+            world.player.apply_control(control)
+            # if controller.parse_events(client, world, clock):
+            #     return
             if not world.tick(clock):
                 return
             world.render(display)
@@ -171,6 +201,23 @@ def game_loop(args):
 # ==============================================================================
 # -- main() --------------------------------------------------------------------
 # ==============================================================================
+
+
+async def receiver(websocket, path):
+    global FORWARD, STEER
+    while True:
+        data = await websocket.recv()
+        data = json.loads(data)
+        FORWARD = data['forward']
+        STEER = data['steer']
+        
+        await asyncio.sleep(0.01)
+
+
+def run(loop):
+
+    # asyncio.get_event_loop().run_until_complete(start_server)
+    loop.run_forever()
 
 
 def main():
@@ -216,7 +263,13 @@ def main():
     print(__doc__)
 
     try:
-
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain('./webpage/cert.pem', keyfile='./webpage/key.pem')
+        start_server = websockets.serve(receiver, "164.11.73.121", 8765, ssl=ssl_context)
+        asyncio.get_event_loop().run_until_complete(start_server)
+        loop = asyncio.get_event_loop()
+        t = threading.Thread(target=run, args=(loop,))
+        t.start()
         game_loop(args)
 
     except KeyboardInterrupt:

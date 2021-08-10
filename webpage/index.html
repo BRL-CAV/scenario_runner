@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <body>
+        <div>Connection <span id='connection'>Not connected</span></div>
+        <div>forward <span id='forward'></span></div>
+        <div>Steer <span id='steer'></span></div>
+    </body>
+    <script type="text/javascript">
+
+    // Create WebSocket connection.
+    const socket = new WebSocket('wss://164.11.73.121:8765');
+    let is_active = false
+
+    function start() {
+        is_active = !is_active
+    }
+    window.addEventListener("deviceorientation", handleOrientation, true);
+
+    let forwardEl = document.querySelector('#forward')
+    let steerEl = document.querySelector('#steer')
+    let connectionEl = document.querySelector('#connection')
+
+    function handleOrientation(orientation) {
+        let forward = Math.abs(orientation.gamma) < 10? 0: Math.sign(orientation.gamma)
+        let steer = Math.abs(orientation.beta) < 10? 0: -Math.sign(orientation.beta)
+        console.log(forward, steer)
+
+        forwardEl.innerHTML = forward==0?'Idle': forward>0? "Accelerate": 'Brake';
+        steerEl.innerHTML = steer == 0? 'Idle': steer > 0? 'Right': "Left"
+        socket.send(JSON.stringify({forward, steer}));
+        
+    }
+
+
+    // Connection opened
+    socket.addEventListener('open', function (event) {
+        connectionEl.innerHTML = 'Connected'
+        
+    });
+
+    // Listen for messages
+    socket.addEventListener('message', function (event) {
+        console.log('Message from server ', event.data);
+    })
+
+    </script>
+</html>

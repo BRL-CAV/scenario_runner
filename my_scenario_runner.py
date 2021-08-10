@@ -12,7 +12,6 @@ This is the main script to be executed when running a scenario.
 It loads the scenario configuration, loads the scenario and manager,
 and finally triggers the scenario execution.
 """
-
 from __future__ import print_function
 
 import glob
