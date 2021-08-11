@@ -1,0 +1,287 @@
+<?xml version="1.0" ?>
+<OpenSCENARIO>
+  <FileHeader author="BRL OpenSCENARIO Editor" date="2021-08-11T13:00:38" description="CARLA:exported" revMajor="1" revMinor="0"/>
+  <CatalogLocations />
+  <RoadNetwork>
+    <LogicFile filepath="noLoopShort"/>
+    <SceneGraphFile filepath=""/>
+  </RoadNetwork>
+  <Entities>
+    <ScenarioObject name="EGO">
+      <Vehicle name="vehicle.brl.bus" vehicleCategory="car">
+        <ParameterDeclarations/>
+        <Performance maxSpeed="69.444" maxAcceleration="200" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="ego_vehicle"/>
+          <Property name="color" value="0,0,255"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+    
+    <ScenarioObject name="CAR1">
+      <Vehicle name="vehicle.lincoln.mkz2017" vehicleCategory="car">
+        <ParameterDeclarations/>
+        <Performance maxSpeed="69.444" maxAcceleration="200" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="ego_vehicle"/>
+          <Property name="color" value="0,0,255"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+  </Entities>
+  <Storyboard>
+    <Init>
+      <Actions>
+        <GlobalAction>
+          <EnvironmentAction>
+            <Environment name="Environment1">
+              <TimeOfDay animation="false" dateTime="2020-03-20T12:00:00"/>
+              <Weather cloudState="free">
+                <Sun azimuth="0.0" elevation="1.31" intensity="0.85"/>
+                <Fog visualRange="10000.0">
+                  <BoundingBox>
+                    <Center x="0.0" y="0.0" z="0.0"/>
+                    <Dimensions height="0.0" length="0.0" width="0.0"/>
+                  </BoundingBox>
+                </Fog>
+                <Precipitation intensity="0.0" precipitationType="dry"/>
+              </Weather>
+              <RoadCondition frictionScaleFactor="1.0"/>
+            </Environment>
+          </EnvironmentAction>
+        </GlobalAction>
+        <Private entityRef="EGO">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition h="-1.2186650973464799" x="50.502" y="-130.879" z="2.000"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+          <PrivateAction>
+            <ControllerAction>
+              <AssignControllerAction>
+                <Controller name="EGOAgent">
+                  <Properties>
+                    <Property name="module" value="cavstar_control"/>
+                    <Property name="speeds" value="[]"/>
+                  </Properties>
+                </Controller>
+              </AssignControllerAction>
+              <OverrideControllerValueAction>
+                <Throttle active="false" value="0"/>
+                <Brake active="false" value="0"/>
+                <Clutch active="false" value="0"/>
+                <ParkingBrake active="false" value="0"/>
+                <SteeringWheel active="false" value="0"/>
+                <Gear active="false" number="0"/>
+              </OverrideControllerValueAction>
+            </ControllerAction>
+          </PrivateAction>
+        </Private>
+        <Private entityRef="CAR1">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition h="-1.1989667126472217" x="49.120" y="-139.573" z="2.000"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+          <PrivateAction>
+            <ControllerAction>
+              <AssignControllerAction>
+                <Controller name="CAR1Agent">
+                  <Properties>
+                    <Property name="module" value="custom_control"/>
+                    <Property name="speeds" value="{'1': 5, '2': -10}"/>
+                  </Properties>
+                </Controller>
+              </AssignControllerAction>
+              <OverrideControllerValueAction>
+                <Throttle active="false" value="0"/>
+                <Brake active="false" value="0"/>
+                <Clutch active="false" value="0"/>
+                <ParkingBrake active="false" value="0"/>
+                <SteeringWheel active="false" value="0"/>
+                <Gear active="false" number="0"/>
+              </OverrideControllerValueAction>
+            </ControllerAction>
+          </PrivateAction>
+        </Private>
+      </Actions>
+    </Init>
+    <Story name="Auto-gen">
+      <Act name="Behavior">
+        <ManeuverGroup maximumExecutionCount="1" name="EGOManeuverAutopilot">
+          <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="EGO"/>
+          </Actors>
+        </ManeuverGroup>
+        <ManeuverGroup maximumExecutionCount="1" name="CAR1ManeuverAutopilot">
+          <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="CAR1"/>
+          </Actors>
+          <Maneuver name="CAR1Autopilot">
+            <Event name="CAR1SpeedControl" priority="parallel">
+              <Action name="CAR1SpeedControl">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsDimension="distance" dynamicsShape="step" value="50"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="8.333333333333334"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition conditionEdge="rising" delay="0" name="StartCondition">
+                    <ByValueCondition>
+                      <SimulationTimeCondition rule="greaterThan" value="3"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+            <Event name="CAR1FollowRoute" priority="parallel">
+              <Action name="CAR1FollowRoute">
+                <PrivateAction>
+                  <RoutingAction>
+                    <AssignRouteAction>
+                      <Route closed="false" name="CAR1Lane">
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="51.22116720023448" y="-143.6270944380136" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="67.68812327215062" y="-187.38693488808372" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="77.74364722544223" y="-202.7676467643918" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="79.58727025005977" y="-207.36511454922754" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="85.49528253762998" y="-218.81699692619551" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="102.90813008810291" y="-263.83006078718483" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="130.7481188952343" y="-324.39031750722216" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="144.15554556682602" y="-353.729827005667" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="163.51255013054825" y="-386.7471956848873" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="186.38866388332667" y="-424.94685280277275" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="202.56087931886458" y="-452.6142851238479" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="219.1516221036612" y="-485.46385299013156" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="242.61335371279765" y="-522.9107160898013" z="0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="260.20964224406" y="-546.7329974664947" z="0"/>
+                          </Position>
+                        </Waypoint>
+                      </Route>
+                    </AssignRouteAction>
+                  </RoutingAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition conditionEdge="rising" delay="0" name="StartCondition">
+                    <ByValueCondition>
+                      <SimulationTimeCondition rule="greaterThan" value="3"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+        </ManeuverGroup>
+        <StartTrigger>
+          <ConditionGroup>
+            <Condition conditionEdge="rising" delay="0" name="OverallStartCondition">
+              <ByValueCondition>
+                <SimulationTimeCondition rule="greaterThan" value="0"/>
+              </ByValueCondition>
+            </Condition>
+          </ConditionGroup>
+        </StartTrigger>
+        <StopTrigger>
+          <ConditionGroup>
+            <Condition conditionEdge="rising" delay="0" name="stop_criteria_0">
+              <ByValueCondition>
+                <SimulationTimeCondition rule="greaterThan" value="60"/>
+              </ByValueCondition>
+            </Condition>
+          </ConditionGroup>
+        </StopTrigger>
+      </Act>
+    </Story>
+    <StopTrigger>
+      <ConditionGroup>
+        <Condition conditionEdge="rising" delay="0" name="criteria_RunningStopTest">
+          <ByValueCondition>
+            <ParameterCondition parameterRef="" rule="lessThan" value=""/>
+          </ByValueCondition>
+        </Condition>
+      </ConditionGroup>
+    </StopTrigger>
+  </Storyboard>
+</OpenSCENARIO>
