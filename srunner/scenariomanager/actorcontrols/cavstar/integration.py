@@ -41,7 +41,7 @@ want_lane_invasions = False
 
 # Want Lane Offsets & debugging.
 # If debug then it draws arrows and prints extra text based on car to lane offset
-want_lane_offsets = False
+want_lane_offsets = True
 want_lane_offset_debug = False
 
 # Save images from front of car to dir
@@ -55,7 +55,7 @@ next_cam_frame = 1
 
 # Nail the viewer to the front of the car per frame and use a screen capture method to grab the result
 # This is way faster and runs realtime.
-want_viewer_nailed_to_front_of_vehicle = False
+want_viewer_nailed_to_front_of_vehicle = True
 
 # Radar
 want_radar_sensor = False
@@ -1414,20 +1414,19 @@ def run_step(world, the_map, viewer, vehicle):
                             v_dot_voa *= scale
                             v_x_oav   *= scale
 
-                        if v_dot_voa > 0 and v_dot_voa < 300.0:
+                        if v_dot_voa > 0 and v_dot_voa < 50.0:
                             other_objects_array.append( v_dot_voa )
                             other_objects_array.append( v_x_voa )
                             other_objects_array.append( v_dot_oav - mag_veh_vel )
                             other_objects_array.append( v_x_oav )
                             num_other_objects = num_other_objects + 1
-                            print( 'SOBS obj:', round( v_dot_voa, 1 ), round( v_x_voa, 1 ), round( v_dot_oav - mag_veh_vel, 1 ), round( v_x_oav, 1 ) )
+                            #print( '### SOBS obj:', round( v_dot_voa, 1 ), round( v_x_voa, 1 ), round( v_dot_oav - mag_veh_vel, 1 ), round( v_x_oav, 1 ) )
 
-            if num_other_objects > 0:
-                ctarray = (ctypes.c_float * (num_other_objects * 4))( *other_objects_array )
-                other_objs_riff_message.tag = b'SOBS'
-                other_objs_riff_message.length = ctypes.sizeof( ctypes.c_float ) * (num_other_objects * 4)
-                other_objs_riff_message.data   = ctarray
-                radar_riff_client.write( other_objs_riff_message );
+            ctarray = (ctypes.c_float * (num_other_objects * 4))( *other_objects_array )
+            other_objs_riff_message.tag = b'SOBS'
+            other_objs_riff_message.length = ctypes.sizeof( ctypes.c_float ) * (num_other_objects * 4)
+            other_objs_riff_message.data   = ctarray
+            radar_riff_client.write( other_objs_riff_message );
 
     except KeyboardInterrupt:
         print( 'Keyboard interrupt, exiting...' )
