@@ -179,9 +179,9 @@ def game_loop(args):
                 control.steer = 0
 
 
-            world.player.apply_control(control)
-            # if controller.parse_events(client, world, clock):
-            #     return
+            # world.player.apply_control(control)
+            if controller.parse_events(client, world, clock):
+                return
             if not world.tick(clock):
                 return
             world.render(display)

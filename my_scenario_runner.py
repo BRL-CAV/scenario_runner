@@ -194,12 +194,21 @@ class ScenarioRunner(object):
                     self.ego_vehicles[i].destroy()
                 self.ego_vehicles[i] = None
         self.ego_vehicles = []
-        self.cameraL.destroy()
-        self.cameraL = None
-        self.cameraC.destroy()
-        self.cameraC = None
-        self.cameraR.destroy()
-        self.cameraR = None
+        try:
+            self.cameraL.destroy()
+            self.cameraL = None
+        except:
+            pass
+        try:
+            self.cameraC.destroy()
+            self.cameraC = None
+        except:
+            pass
+        try:
+            self.cameraR.destroy()
+            self.cameraR = None
+        except:
+            pass
 
         if self.agent_instance:
             self.agent_instance.destroy()
@@ -241,18 +250,18 @@ class ScenarioRunner(object):
         # Add three camera
         world = CarlaDataProvider.get_world()
         bp_camera = world.get_blueprint_library().filter('sensor.camera.rgb')[0]
-        bp_camera.set_attribute('image_size_x', str(1920))
+        bp_camera.set_attribute('image_size_x', str(1920*3))
         bp_camera.set_attribute('image_size_y', str(940))
         
 
-        position = carla.Transform(carla.Location(x=-5.9, y=-0.2, z=2.5), carla.Rotation(pitch=0.0, yaw=-85))
-        attachment = carla.AttachmentType.Rigid
-        bp_camera.set_attribute('role_name', 'left')
-        self.cameraL = world.spawn_actor(
-            bp_camera,
-            position,
-            attach_to=self.ego_vehicles[0],
-            attachment_type=attachment)
+        # position = carla.Transform(carla.Location(x=-5.9, y=-0.2, z=2.5), carla.Rotation(pitch=0.0, yaw=-85))
+        # attachment = carla.AttachmentType.Rigid
+        # bp_camera.set_attribute('role_name', 'left')
+        # self.cameraL = world.spawn_actor(
+        #     bp_camera,
+        #     position,
+        #     attach_to=self.ego_vehicles[0],
+        #     attachment_type=attachment)
 
         position = carla.Transform(carla.Location(x=-5.5, y=0.0, z=2.3), carla.Rotation(pitch=0.0))
         attachment = carla.AttachmentType.Rigid
@@ -263,14 +272,14 @@ class ScenarioRunner(object):
             attach_to=self.ego_vehicles[0],
             attachment_type=attachment)
 
-        position = carla.Transform(carla.Location(x=-5.5, y=0.1, z=2.5), carla.Rotation(pitch=0.0, yaw=80))
-        attachment = carla.AttachmentType.Rigid
-        bp_camera.set_attribute('role_name', 'right')
-        self.cameraR = world.spawn_actor(
-            bp_camera,
-            position,
-            attach_to=self.ego_vehicles[0],
-            attachment_type=attachment)
+        # position = carla.Transform(carla.Location(x=-5.5, y=0.1, z=2.5), carla.Rotation(pitch=0.0, yaw=80))
+        # attachment = carla.AttachmentType.Rigid
+        # bp_camera.set_attribute('role_name', 'right')
+        # self.cameraR = world.spawn_actor(
+        #     bp_camera,
+        #     position,
+        #     attach_to=self.ego_vehicles[0],
+        #     attachment_type=attachment)
 
 
         # sync state

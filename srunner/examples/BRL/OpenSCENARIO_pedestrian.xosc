@@ -1,0 +1,192 @@
+<?xml version="1.0" ?>
+<OpenSCENARIO>
+  <FileHeader author="BRL OpenSCENARIO Editor" date="2021-07-19T13:46:04" description="CARLA:exported" revMajor="1" revMinor="0"/>
+    <CatalogLocations/>
+  <RoadNetwork>
+    <LogicFile filepath="noLoopShort"/>
+    <SceneGraphFile filepath=""/>
+  </RoadNetwork>
+  <Entities>
+    <ScenarioObject name="EGO">
+      <Vehicle name="walker.pedestrian.0001" vehicleCategory="car">
+        <ParameterDeclarations/>
+        <Performance maxSpeed="69.444" maxAcceleration="200" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="ego_vehicle"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+  </Entities>
+  <Storyboard>
+    <Init>
+      <Actions>
+        <GlobalAction>
+          <EnvironmentAction>
+            <Environment name="Environment1">
+              <TimeOfDay animation="false" dateTime="2020-03-20T12:00:00"/>
+              <Weather cloudState="free">
+                <Sun azimuth="1.57" elevation="0.26" intensity="0.85"/>
+                <Fog visualRange="10000.0">
+                  <BoundingBox>
+                    <Center x="0.0" y="0.0" z="0.0"/>
+                    <Dimensions height="0.0" length="0.0" width="0.0"/>
+                  </BoundingBox>
+                </Fog>
+                <Precipitation intensity="0.0" precipitationType="dry"/>
+              </Weather>
+              <RoadCondition frictionScaleFactor="1.0"/>
+            </Environment>
+          </EnvironmentAction>
+        </GlobalAction>
+        <Private entityRef="EGO">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition h="-1.1571356200149532" x="104.097" y="-259.609" z="2.0"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+          <PrivateAction>
+            <ControllerAction>
+              <AssignControllerAction>
+                <Controller name="EGOAgent">
+                  <Properties>
+                    <Property name="module" value="custom_pedestrian_control"/>
+                    <Property name="speeds" value="{'0': 3, '2': 2}"/>
+                  </Properties>
+                </Controller>
+              </AssignControllerAction>
+              <OverrideControllerValueAction>
+                <Throttle active="false" value="0"/>
+                <Brake active="false" value="0"/>
+                <Clutch active="false" value="0"/>
+                <ParkingBrake active="false" value="0"/>
+                <SteeringWheel active="false" value="0"/>
+                <Gear active="false" number="0"/>
+              </OverrideControllerValueAction>
+            </ControllerAction>
+          </PrivateAction>
+        </Private>
+      </Actions>
+    </Init>
+    <Story name="Auto-gen">
+      <Act name="Behavior">
+        <ManeuverGroup maximumExecutionCount="1" name="EGOManeuverAutopilot">
+          <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="EGO"/>
+          </Actors>
+          <Maneuver name="EGOAutopilot">
+            <Event name="EGOSpeedControl" priority="parallel">
+              <Action name="EGOSpeedControl">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsDimension="distance" dynamicsShape="step" value="50"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="0.0"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition conditionEdge="rising" delay="0" name="StartCondition">
+                    <ByValueCondition>
+                      <SimulationTimeCondition rule="greaterThan" value="1"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+            <Event name="EGOFollowRoute" priority="parallel">
+              <Action name="EGOFollowRoute">
+                <PrivateAction>
+                  <RoutingAction>
+                    <AssignRouteAction>
+                      <Route closed="false" name="EGOLane">
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="109.94267596562322" y="-272.81599720687717" z="0.0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="138.96518687092697" y="-335.34051139493647" z="0.0"/>
+                          </Position>
+                        </Waypoint>
+                        <Waypoint routeStrategy="shortest">
+                          <Position>
+                            <WorldPosition x="171.8129406238157" y="-400.70639277265514" z="0.0"/>
+                          </Position>
+                        </Waypoint>
+                      </Route>
+                    </AssignRouteAction>
+                  </RoutingAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition conditionEdge="rising" delay="0" name="StartCondition">
+                    <ByValueCondition>
+                      <SimulationTimeCondition rule="greaterThan" value="1"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+        </ManeuverGroup>
+        <StartTrigger>
+          <ConditionGroup>
+            <Condition conditionEdge="rising" delay="0" name="OverallStartCondition">
+              <ByValueCondition>
+                <SimulationTimeCondition rule="greaterThan" value="0"/>
+              </ByValueCondition>
+            </Condition>
+          </ConditionGroup>
+        </StartTrigger>
+        <StopTrigger>
+          <ConditionGroup>
+            <Condition conditionEdge="rising" delay="0" name="EndCondition">
+              <ByEntityCondition>
+                <TriggeringEntities triggeringEntitiesRule="any">
+                  <EntityRef entityRef="EGO"/>
+                </TriggeringEntities>
+                <EntityCondition>
+                  <ReachPositionCondition tolerance="2">
+                    <Position>
+                      <WorldPosition x="291.7568416322617" y="-589.9472756056064" z="0.0"/>
+                    </Position>
+                  </ReachPositionCondition>
+                </EntityCondition>
+              </ByEntityCondition>
+            </Condition>
+            <Condition conditionEdge="rising" delay="0" name="stop_criteria_0">
+              <ByValueCondition>
+                <SimulationTimeCondition rule="greaterThan" value="5000"/>
+              </ByValueCondition>
+            </Condition>
+          </ConditionGroup>
+        </StopTrigger>
+      </Act>
+    </Story>
+    <StopTrigger>
+      <ConditionGroup>
+        <Condition conditionEdge="rising" delay="0" name="criteria_RunningStopTest">
+          <ByValueCondition>
+            <ParameterCondition parameterRef="" rule="lessThan" value=""/>
+          </ByValueCondition>
+        </Condition>
+      </ConditionGroup>
+    </StopTrigger>
+  </Storyboard>
+</OpenSCENARIO>

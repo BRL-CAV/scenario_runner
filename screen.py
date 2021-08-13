@@ -59,7 +59,7 @@ class Display:
         
         self.display = pygame.display.set_mode(
             (int(self.camera.attributes['image_size_x']), int(self.camera.attributes['image_size_y'])),
-            pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN, display=args.display)
+            pygame.HWSURFACE | pygame.DOUBLEBUF, display=args.display)
 
         self.camera.listen(self.broadcast)
         # self.camera.listen(lambda image: self.broadcast(display, image))
