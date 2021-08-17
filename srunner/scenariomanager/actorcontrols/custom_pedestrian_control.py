@@ -25,7 +25,7 @@ class CustomPedestrianControl(BasicControl):
     Args:
         actor (carla.Actor): Pedestrian actor that should be controlled.
     """
-    _target_speed = 5
+    _target_speed = 0
     def __init__(self, actor, args=None):
         if not isinstance(actor, carla.Walker):
             raise RuntimeError("PedestrianControl: The to be controlled actor is not a pedestrian")
