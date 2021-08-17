@@ -64,13 +64,15 @@ class CustomPedestrianControl(BasicControl):
         except:
             pass
 
+
+
+        # If target speed is negative, make it zero
+        if self._target_speed < 0:
+            self._target_speed = 0
+            # raise NotImplementedError("Negative target speeds are not yet supported")
+
         control = self._actor.get_control()
         control.speed = self._target_speed
-
-
-        # If target speed is negavite, raise an exception
-        if self._target_speed < 0:
-            raise NotImplementedError("Negative target speeds are not yet supported")
         if self._waypoints:
             self._reached_goal = False
             location = self._waypoints[0].location
