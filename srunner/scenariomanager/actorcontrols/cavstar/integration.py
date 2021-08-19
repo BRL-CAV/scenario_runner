@@ -16,7 +16,7 @@ tron = True
 
 # IP of riff servers to connect to
 server_ip_addr = '91.227.124.104'
-# server_ip_addr = '127.0.0.1'
+#server_ip_addr = '127.0.0.1'
 
 # We really want/need synchronous mode but it doesnt work properly
 want_synchronous_mode = False
@@ -1378,6 +1378,13 @@ def run_step(world, the_map, viewer, vehicle):
             veh_ang = math.radians( (360 - veh_trans.rotation.yaw) % 360.0 )
             vi = math.cos( veh_ang )
             vj = math.sin( veh_ang )
+
+            # These values are from the middle of the bus but sensors are located at front.
+            # So move the detectors location half a bus length closer to the front
+            half_bus_dist = 1.0
+            vx = veh_utm[0] + half_bus_dist * vi
+            vy = veh_utm[1] + half_bus_dist * vj
+
             veh_vel = vehicle.get_velocity()
             mag_veh_vel = veh_vel.x*veh_vel.x + veh_vel.y*veh_vel.y        # Not doing z
             if mag_veh_vel > 0.0:
@@ -1390,31 +1397,36 @@ def run_step(world, the_map, viewer, vehicle):
             if len( actors ) > 0:
                 for actor in actors:
                     if actor.type_id != vehicle_blueprint_name and (re.search("vehicle.*", actor.type_id) or re.search("walker.*", actor.type_id) ):
-                        oa_loc = actor.get_location()
-                        oa_vel = actor.get_velocity()
-                        oa_geo = the_map.transform_to_geolocation( oa_loc )
+                        oa_trans = actor.get_transform()
+                        oa_geo = the_map.transform_to_geolocation( oa_trans.location )
                         oa_utm = utm.from_latlon( oa_geo.latitude, oa_geo.longitude )
-                        oa_ang = math.radians( (360 - veh_trans.rotation.yaw) % 360.0 )
+                        oax = oa_utm[0]
+                        oay = oa_utm[1]
+                        oa_ang = math.radians( (360 - oa_trans.rotation.yaw) % 360.0 )
                         oai = math.cos( oa_ang )
                         oaj = math.sin( oa_ang )
-                        v_oa_i = oa_utm[0] - veh_utm[0]
-                        v_oa_j = oa_utm[1] - veh_utm[1]
-                        v_dot_voa = vi*v_oa_i + vj*v_oa_j;
-                        v_x_voa   = vi*v_oa_j - vj*v_oa_i;
-                        oavi = oa_vel.x;
-                        oavj = oa_vel.y;                                  # Not doing z
-                        v_dot_oav = vi * oavi + vj * oavj;
-                        v_x_oav   = vi * oavj - vj * oavi;
-                        # These values are from the middle of the bus but we dont want to crash at the front
-                        # of it (where the radar would actually be situated. So move the range half a bus length
-                        # and half a car length closer and scale the cross prod by same amount.
-                        move_contact_dist = 8.0
-                        if v_dot_oav > move_contact_dist:
-                            scale = (v_dot_voa - move_contact_dist) / v_dot_voa
-                            v_dot_voa *= scale
-                            v_x_oav   *= scale
 
-                        if v_dot_voa > 0 and v_dot_voa < 50.0:
+                        oa_vel = actor.get_velocity()
+                        oa_mag_vel2 = oa_vel.x*oa_vel.x + oa_vel.y*oa_vel.y
+                        oa_mag_vel = 0
+                        if oa_mag_vel2 > 0.0:
+                            oa_mag_vel = math.sqrt( oa_mag_vel2 )
+                        oavi = oa_mag_vel * oai
+                        oavj = oa_mag_vel * oaj
+
+                        # Rel position
+                        v_oa_i = oax - vx
+                        v_oa_j = oay - vy
+
+                        # Rel position in bus coordinate space
+                        v_dot_voa = vi*v_oa_i + vj*v_oa_j
+                        v_x_voa   = vi*v_oa_j - vj*v_oa_i
+
+                        # Rel velocity in bus direction
+                        v_dot_oav = vi * oavi + vj * oavj
+                        v_x_oav   = vi * oavj - vj * oavi
+
+                        if v_dot_voa > 0 and v_dot_voa < 300.0:
                             other_objects_array.append( v_dot_voa )
                             other_objects_array.append( v_x_voa )
                             other_objects_array.append( v_dot_oav - mag_veh_vel )
