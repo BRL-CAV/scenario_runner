@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO>
-  <FileHeader author="BRL OpenSCENARIO Editor" date="2021-08-19T15:24:30" description="CARLA:exported" revMajor="1" revMinor="0"/>
-  <CatalogLocations/>
+  <FileHeader author="BRL OpenSCENARIO Editor" date="2021-08-16T12:31:20" description="CARLA:exported" revMajor="1" revMinor="0"/>
+  <CatalogLocations />
   <RoadNetwork>
     <LogicFile filepath="noLoopShort"/>
     <SceneGraphFile filepath=""/>
@@ -63,7 +63,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition h="-1.1489895152543106" x="68.926" y="-190.062" z="2.000"/>
+                <WorldPosition h="-1.144377617888477" x="102.225" y="-263.287" z="2.000"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -72,7 +72,7 @@
               <AssignControllerAction>
                 <Controller name="EGOAgent">
                   <Properties>
-                    <Property name="module" value="cavstar_control"/>
+                    <Property name="module" value="custom_control"/>
                     <Property name="speeds" value="[]"/>
                   </Properties>
                 </Controller>
@@ -92,7 +92,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition h="0.20650769945264089" x="85.349" y="-239.547" z="2.000"/>
+                <WorldPosition h="-1.1184106033716523" x="121.480" y="-304.580" z="2.000"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -102,7 +102,7 @@
                 <Controller name="PEDESTRIAN1Agent">
                   <Properties>
                     <Property name="module" value="custom_pedestrian_control"/>
-                    <Property name="speeds" value="{'1': 1, '2': 2, '3': -4, '4': 0, '5': 2}"/>
+                    <Property name="speeds" value="{'0': 1, '1': 2, '2': -2}"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
@@ -138,7 +138,7 @@
                     <SpeedAction>
                       <SpeedActionDynamics dynamicsDimension="distance" dynamicsShape="step" value="50"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="1.3888888888888888"/>
+                        <AbsoluteTargetSpeed value="0.2777777777777778"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -148,7 +148,7 @@
                 <ConditionGroup>
                   <Condition conditionEdge="rising" delay="0" name="StartCondition">
                     <ByValueCondition>
-                      <SimulationTimeCondition rule="greaterThan" value="3"/>
+                      <SimulationTimeCondition rule="greaterThan" value="1"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
@@ -162,32 +162,22 @@
                       <Route closed="false" name="PEDESTRIAN1Lane">
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="87.85548308062062" y="-241.05178040758526" z="0"/>
+                            <WorldPosition x="124.67360497588564" y="-313.27299768025455" z="0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="88.23033633342897" y="-237.97994598936143" z="0"/>
+                            <WorldPosition x="131.37737261909294" y="-328.15176856466746" z="0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="89.86269881270923" y="-237.1859091764904" z="0"/>
+                            <WorldPosition x="144.61723272876316" y="-355.9030999379401" z="0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="90.59884730679086" y="-236.89337325467793" z="0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="92.12518947701896" y="-236.22471560151652" z="0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="97.54388138027561" y="-235.8278337123056" z="0"/>
+                            <WorldPosition x="154.50519014193884" y="-374.62684645788346" z="0"/>
                           </Position>
                         </Waypoint>
                       </Route>
@@ -199,7 +189,7 @@
                 <ConditionGroup>
                   <Condition conditionEdge="rising" delay="0" name="StartCondition">
                     <ByValueCondition>
-                      <SimulationTimeCondition rule="greaterThan" value="3"/>
+                      <SimulationTimeCondition rule="greaterThan" value="1"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
@@ -220,7 +210,7 @@
           <ConditionGroup>
             <Condition conditionEdge="rising" delay="0" name="stop_criteria_0">
               <ByValueCondition>
-                <SimulationTimeCondition rule="greaterThan" value="20"/>
+                <SimulationTimeCondition rule="greaterThan" value="80"/>
               </ByValueCondition>
             </Condition>
           </ConditionGroup>

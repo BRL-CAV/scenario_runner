@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <OpenSCENARIO>
-  <FileHeader author="BRL OpenSCENARIO Editor" date="2021-08-19T15:24:30" description="CARLA:exported" revMajor="1" revMinor="0"/>
-  <CatalogLocations/>
+  <FileHeader author="BRL OpenSCENARIO Editor" date="2021-08-19T15:46:56" description="CARLA:exported" revMajor="1" revMinor="0"/>
+  <CatalogLocations />
   <RoadNetwork>
     <LogicFile filepath="noLoopShort"/>
     <SceneGraphFile filepath=""/>
@@ -25,17 +25,23 @@
         </Properties>
       </Vehicle>
     </ScenarioObject>
-    <ScenarioObject name="PEDESTRIAN1">
-      <Pedestrian model="walker.pedestrian.0001" mass="90.0" name="walker.pedestrian.0001" pedestrianCategory="pedestrian">
+    <ScenarioObject name="CAR1">
+      <Vehicle name="vehicle.lincoln.mkz2017" vehicleCategory="car">
         <ParameterDeclarations/>
+        <Performance maxSpeed="69.444" maxAcceleration="200" maxDeceleration="10.0"/>
         <BoundingBox>
           <Center x="1.5" y="0.0" z="0.9"/>
           <Dimensions width="2.1" length="4.5" height="1.8"/>
         </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
         <Properties>
-          <Property name="type" value="simulation"/>
+          <Property name="type" value="ego_vehicle"/>
+          <Property name="color" value="0,0,255"/>
         </Properties>
-      </Pedestrian>
+      </Vehicle>
     </ScenarioObject>
   </Entities>
   <Storyboard>
@@ -63,7 +69,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition h="-1.1489895152543106" x="68.926" y="-190.062" z="2.000"/>
+                <WorldPosition h="-1.2240791975155618" x="-17.096" y="48.177" z="2.000"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -88,21 +94,21 @@
             </ControllerAction>
           </PrivateAction>
         </Private>
-        <Private entityRef="PEDESTRIAN1">
+        <Private entityRef="CAR1">
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition h="0.20650769945264089" x="85.349" y="-239.547" z="2.000"/>
+                <WorldPosition h="-1.2241236998210787" x="-0.665" y="10.894" z="2.000"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
           <PrivateAction>
             <ControllerAction>
               <AssignControllerAction>
-                <Controller name="PEDESTRIAN1Agent">
+                <Controller name="CAR1Agent">
                   <Properties>
-                    <Property name="module" value="custom_pedestrian_control"/>
-                    <Property name="speeds" value="{'1': 1, '2': 2, '3': -4, '4': 0, '5': 2}"/>
+                    <Property name="module" value="custom_control"/>
+                    <Property name="speeds" value="{}"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
@@ -126,19 +132,19 @@
             <EntityRef entityRef="EGO"/>
           </Actors>
         </ManeuverGroup>
-        <ManeuverGroup maximumExecutionCount="1" name="PEDESTRIAN1ManeuverAutopilot">
+        <ManeuverGroup maximumExecutionCount="1" name="CAR1ManeuverAutopilot">
           <Actors selectTriggeringEntities="false">
-            <EntityRef entityRef="PEDESTRIAN1"/>
+            <EntityRef entityRef="CAR1"/>
           </Actors>
-          <Maneuver name="PEDESTRIAN1Autopilot">
-            <Event name="PEDESTRIAN1SpeedControl" priority="parallel">
-              <Action name="PEDESTRIAN1SpeedControl">
+          <Maneuver name="CAR1Autopilot">
+            <Event name="CAR1SpeedControl" priority="parallel">
+              <Action name="CAR1SpeedControl">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
                       <SpeedActionDynamics dynamicsDimension="distance" dynamicsShape="step" value="50"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="1.3888888888888888"/>
+                        <AbsoluteTargetSpeed value="8.333333333333334"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -148,46 +154,36 @@
                 <ConditionGroup>
                   <Condition conditionEdge="rising" delay="0" name="StartCondition">
                     <ByValueCondition>
-                      <SimulationTimeCondition rule="greaterThan" value="3"/>
+                      <SimulationTimeCondition rule="greaterThan" value="1"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
               </StartTrigger>
             </Event>
-            <Event name="PEDESTRIAN1FollowRoute" priority="parallel">
-              <Action name="PEDESTRIAN1FollowRoute">
+            <Event name="CAR1FollowRoute" priority="parallel">
+              <Action name="CAR1FollowRoute">
                 <PrivateAction>
                   <RoutingAction>
                     <AssignRouteAction>
-                      <Route closed="false" name="PEDESTRIAN1Lane">
+                      <Route closed="false" name="CAR1Lane">
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="87.85548308062062" y="-241.05178040758526" z="0"/>
+                            <WorldPosition x="3.5259945922517435" y="-0.809393590243116" z="0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="88.23033633342897" y="-237.97994598936143" z="0"/>
+                            <WorldPosition x="28.572054211689498" y="-71.69632201796894" z="0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="89.86269881270923" y="-237.1859091764904" z="0"/>
+                            <WorldPosition x="47.16085227812574" y="-124.35930366927323" z="0"/>
                           </Position>
                         </Waypoint>
                         <Waypoint routeStrategy="shortest">
                           <Position>
-                            <WorldPosition x="90.59884730679086" y="-236.89337325467793" z="0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="92.12518947701896" y="-236.22471560151652" z="0"/>
-                          </Position>
-                        </Waypoint>
-                        <Waypoint routeStrategy="shortest">
-                          <Position>
-                            <WorldPosition x="97.54388138027561" y="-235.8278337123056" z="0"/>
+                            <WorldPosition x="69.1225565008215" y="-181.20128923795414" z="0"/>
                           </Position>
                         </Waypoint>
                       </Route>
@@ -199,7 +195,7 @@
                 <ConditionGroup>
                   <Condition conditionEdge="rising" delay="0" name="StartCondition">
                     <ByValueCondition>
-                      <SimulationTimeCondition rule="greaterThan" value="3"/>
+                      <SimulationTimeCondition rule="greaterThan" value="1"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
@@ -220,7 +216,7 @@
           <ConditionGroup>
             <Condition conditionEdge="rising" delay="0" name="stop_criteria_0">
               <ByValueCondition>
-                <SimulationTimeCondition rule="greaterThan" value="20"/>
+                <SimulationTimeCondition rule="greaterThan" value="40"/>
               </ByValueCondition>
             </Condition>
           </ConditionGroup>
