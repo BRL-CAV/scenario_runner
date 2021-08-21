@@ -949,17 +949,6 @@ def run_step(world, the_map, viewer, vehicle):
                 image.save_to_disk( fn )
                 next_cam_frame = next_cam_frame + 1
 
-        if want_viewer_nailed_to_front_of_vehicle:
-            veh_trans = vehicle.get_transform()
-            view_trans = veh_trans
-            veh_ang = math.radians( (360 + veh_trans.rotation.yaw) % 360.0 )
-            vi = math.cos( veh_ang )
-            vj = math.sin( veh_ang )
-            view_trans.location.x = veh_trans.location.x + 2.0 * vi
-            view_trans.location.y = veh_trans.location.y + 2.0 * vj
-            view_trans.location.z = veh_trans.location.z + 3.0
-            viewer.set_transform( view_trans )
-
         new_vehicle_controller_motion = False
         while True: # We only want the latest one
             try: veh_control_riff_message = veh_control_riff_client.receive()
@@ -1060,6 +1049,17 @@ def run_step(world, the_map, viewer, vehicle):
 
         # A world tick might take some time. So what is the new 'now'.
         now = GetMsFromStart() / 1000.0
+
+        if want_viewer_nailed_to_front_of_vehicle:
+            veh_trans = vehicle.get_transform()
+            view_trans = veh_trans
+            veh_ang = math.radians( (360 + veh_trans.rotation.yaw) % 360.0 )
+            vi = math.cos( veh_ang )
+            vj = math.sin( veh_ang )
+            view_trans.location.x = veh_trans.location.x + 2.0 * vi
+            view_trans.location.y = veh_trans.location.y + 2.0 * vj
+            view_trans.location.z = veh_trans.location.z + 3.0
+            viewer.set_transform( view_trans )
 
         # Receive information from Carla and send to ADS
         if gnss_queue.qsize() > 0:
