@@ -215,6 +215,10 @@ class Riff_MC_SVF(ctypes.Structure):
                  ('turning_angle'     , ctypes.c_float   ),  # Radians, Positive to the left
                  ('padding'           , ctypes.c_float   ) ]
 
+# Sim Time "SIMT"
+class Riff_MC_SIMT(ctypes.Structure):
+    _fields_ = [ ('time'              , ctypes.c_double  ) ]  # Sim Time
+
 # Data structures transfered to Main Non Critical (The sensor interface)
 riff_MNC_SOBS = Riff_MNC_SOBS()
 riff_MNC_SLP  = Riff_MNC_SLP()
@@ -225,6 +229,7 @@ riff_MNC_SMSD = Riff_MNC_SMSD()
 # Data structures transfered to and from Main Critical (The vehicle Interface)
 riff_MC_SVC  = Riff_MC_SVC()
 riff_MC_SVF  = Riff_MC_SVF()
+riff_MC_SIMT = Riff_MC_SIMT()
 
 gnss_riff_message = rifflib.Message()
 mems_riff_message = rifflib.Message()
@@ -232,6 +237,7 @@ lane_riff_message = rifflib.Message()
 radar_riff_message = rifflib.Message()
 other_objs_riff_message = rifflib.Message()
 veh_control_riff_message  = rifflib.Message()
+simtime_riff_message  = rifflib.Message()
 
 # Initialise the RIFF clients for the ADS to connect to
 gnss_riff_client         = rifflib.RiffClient( 6163, server_ip_addr, 5, 'carla non critical gnss' )
@@ -239,6 +245,7 @@ mems_riff_client         = rifflib.RiffClient( 6164, server_ip_addr, 5, 'carla n
 lane_riff_client         = rifflib.RiffClient( 6166, server_ip_addr, 5, 'carla non critical lane' )
 radar_riff_client        = rifflib.RiffClient( 6167, server_ip_addr, 5, 'carla non critical radar' )
 veh_control_riff_client  = rifflib.RiffClient( 6168, server_ip_addr, 5, 'carla critical veh ctl' )
+simtime_riff_client      = rifflib.RiffClient( 6170, server_ip_addr, 5, 'carla critical simtime' )
 
 
 ####################################################################################################
@@ -818,9 +825,26 @@ last_update_SLP_time = 0.0
 last_update_SLP_time_debug = 0.0
 last_update_gnss_time = 0.0
 last_update_SOBS_time = 0.0
+last_sent_SIMT = 0.0
 
 # Before get going proper, send a message about where the car is.
 wait_for_start = 1
+
+
+def riff_clients():
+    gnss_riff_client.connect()
+    mems_riff_client.connect()
+    lane_riff_client.connect()
+    radar_riff_client.connect()
+    veh_control_riff_client.connect()
+    simtime_riff_client.connect()
+
+    # Were not expecting to receive anything from these only write back to controller so keep them flushed
+    gnss_riff_message = gnss_riff_client.receive()
+    mems_riff_message = gnss_riff_client.receive()
+    lane_riff_message = lane_riff_client.receive()
+    radar_riff_message = radar_riff_client.receive()
+
 
 def wait_for_start(world, vehicle):
     global steering_lock_angle_rad
@@ -832,9 +856,11 @@ def wait_for_start(world, vehicle):
     global veh_hdg
     global timestamp_offset
 
+    # Before get going proper, send a message about where the car is.
     global wait_for_start
     wait_for_start = 1
     while wait_for_start:
+        riff_clients()
         if gnss_queue.qsize() > 0:
             data = gnss_queue.get()
             if data:
@@ -875,6 +901,8 @@ def wait_for_start(world, vehicle):
                 world.wait_for_tick()
             except Exception as ex:
                 print('Exception: waiting for world tick:', ex )
+
+
 
 
 # Run vehicle with CAVstar
@@ -919,22 +947,13 @@ def run_step(world, the_map, viewer, vehicle):
     global last_update_SLP_time_debug
     global last_update_gnss_time
     global last_update_SOBS_time
+    global last_sent_SIMT
+
     try:
-        # Before get going proper, send a message about where the car is.
+        riff_clients()
+
         frame_counter = frame_counter + 1
         now = GetMsFromStart() / 1000.0
-
-        gnss_riff_client.connect()
-        mems_riff_client.connect()
-        lane_riff_client.connect()
-        radar_riff_client.connect()
-        veh_control_riff_client.connect()
-
-        # Were not expecting to receive anything from these only write back to controller so keep them flushed
-        gnss_riff_message = gnss_riff_client.receive()
-        mems_riff_message = gnss_riff_client.receive()
-        lane_riff_message = lane_riff_client.receive()
-        radar_riff_message = radar_riff_client.receive()
 
         if ccam_queue.qsize() > 0:
             if want_car_camera_debug_filenames:
@@ -968,6 +987,36 @@ def run_step(world, the_map, viewer, vehicle):
                     #print( 'Read SVC : ReqThrot:', round( req_throttle, 4), '  ReqStT:', round( req_steer_torque, 6), '  ReqBr:', round( req_brake,2 ) )
                 else:
                     print( 'Unexpected vehicle controller motion length', length )
+
+        #print( 'Do simtime' )
+        while True: # We only want the latest one
+            try: simtime_riff_message = simtime_riff_client.receive()
+            except:
+                print( 'No connection to simtime' )
+                pass # Continue if the connection is lost
+            length = simtime_riff_message.length.value
+            data = simtime_riff_message.data
+            if not length:
+                #print( 'Simtime msg has no length' )
+                break
+            if simtime_riff_message.tag.value == b'SIMT':
+                if length == ctypes.sizeof( riff_MC_SIMT ):
+                    ctypes.memmove( ctypes.byref( riff_MC_SIMT ), data, length )
+                    simtime = riff_MC_SIMT.time;
+                    #print( 'SIMT : SimTime:', simtime )
+                else:
+                    print( 'Unexpected simtime length', length )
+            else:
+                print( 'Simtime tag was not SIMT' )
+
+        if 0 and now - last_sent_SIMT > 1.0:
+            riff_MC_SIMT.time = now
+            simtime_riff_message.tag = b'SIMT'
+            simtime_riff_message.length = ctypes.sizeof( riff_MC_SIMT )
+            simtime_riff_message.data   = ctypes.byref(  riff_MC_SIMT )
+            simtime_riff_client.write( simtime_riff_message );
+            #print( 'Sending out Simtime as ', now )
+            last_sent_SIMT = now;
 
         if now - last_update_SVF_time > 0.1:
             dt = now - last_update_SVF_time;
@@ -1422,7 +1471,7 @@ def run_step(world, the_map, viewer, vehicle):
                         v_dot_voa = vi*v_oa_i + vj*v_oa_j
                         v_x_voa   = vi*v_oa_j - vj*v_oa_i
 
-                        # Rel velocity in bus direction
+                        # Velocity in bus direction
                         v_dot_oav = vi * oavi + vj * oavj
                         v_x_oav   = vi * oavj - vj * oavi
 
