@@ -34,20 +34,20 @@ class CavstarControl(BasicControl):
         self.client = CarlaDataProvider.get_client()
         self.world = CarlaDataProvider.get_world()
         self.the_map = CarlaDataProvider.get_map()
-        (viewer,) = CAVstar.setup_cavstar(self.client, self.world, self.the_map, actor)
-        
+        (viewer,) = CAVstar.SetupCavstar(self.client, self.world, self.the_map, actor)
+
         self.viewer = viewer
         # print(actor.get_location())
         sensors = CAVstar.SetupSensors(self.client, self.world, actor)
         self.sensors = sensors
-        CAVstar.wait_for_start(self.world, actor)
+        CAVstar.WaitForStart(self.world, actor)
 
-        
+
         print(args)
         # if args in args:
         #     # self._speeds = ast.literal_eval(args['speeds'])
         #     print(arg)
-            
+
     def __del__(self):
         print("Destroying sensors")
         if self.sensors.gnss is not None:
@@ -72,5 +72,5 @@ class CavstarControl(BasicControl):
         """
         The control loop and setting the actor controls is implemented externally.
         """
-        CAVstar.run_step(self.world, self.the_map, self.viewer, self._actor)
+        CAVstar.RunStep(self.world, self.the_map, self.viewer, self._actor)
         pass

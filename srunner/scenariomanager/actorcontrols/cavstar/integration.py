@@ -18,8 +18,10 @@ tron = True
 server_ip_addr = '91.227.124.104'
 #server_ip_addr = '127.0.0.1'
 
-# We really want/need synchronous mode but it doesnt work properly
-want_synchronous_mode = False
+# Were doing synchronous time
+carla_time = 0
+carla_time_delta = 1.0 / 30.0
+cavstar_time = 0
 
 # Name of car / bus model
 vehicle_blueprint_name = 'vehicle.brl.bus'
@@ -122,25 +124,25 @@ import rifflib, ctypes
 from datetime import datetime, timedelta
 from random import *
 
-try:
-    import pygame
-    from pygame.locals import K_LEFT
-    from pygame.locals import K_RIGHT
-    from pygame.locals import K_UP
-    from pygame.locals import K_DOWN
-    from pygame.locals import K_SPACE
-    from pygame.locals import K_1
-    from pygame.locals import K_2
-    from pygame.locals import K_3
-    from pygame.locals import K_4
-    from pygame.locals import K_5
-    from pygame.locals import K_6
-    from pygame.locals import K_7
-    from pygame.locals import K_8
-    from pygame.locals import K_9
-    from pygame.locals import K_0
-except ImportError:
-    raise RuntimeError( 'Cant import pygame' )
+#try:
+#    import pygame
+#    from pygame.locals import K_LEFT
+#    from pygame.locals import K_RIGHT
+#    from pygame.locals import K_UP
+#    from pygame.locals import K_DOWN
+#    from pygame.locals import K_SPACE
+#    from pygame.locals import K_1
+#    from pygame.locals import K_2
+#    from pygame.locals import K_3
+#    from pygame.locals import K_4
+#    from pygame.locals import K_5
+#    from pygame.locals import K_6
+#    from pygame.locals import K_7
+#    from pygame.locals import K_8
+#    from pygame.locals import K_9
+#    from pygame.locals import K_0
+#except ImportError:
+#    raise RuntimeError( 'Cant import pygame' )
 
 print( 'Importing Carla into python' )
 import carla, utm, queue
@@ -250,6 +252,8 @@ simtime_riff_client      = rifflib.RiffClient( 6170, server_ip_addr, 5, 'carla c
 
 ####################################################################################################
 #
+#  Get time from start of sim
+#
 ####################################################################################################
 start_time = time.time()
 
@@ -269,6 +273,8 @@ def GetMsFromStart():
 
 
 ####################################################################################################
+#
+#  GNSS
 #
 ####################################################################################################
 class Gnss( object ):
@@ -316,9 +322,9 @@ next_cam_frame = 1;
 
 ####################################################################################################
 #
-# Since there is no reverse of map.transform_to_geolocation to go from lat long to
-# map coords, we need to run a loop until were close enough
-# Definitely not optimized ! But when used, this is only done once
+#  Since there is no reverse of map.transform_to_geolocation to go from lat long to
+#  map coords, we need to run a loop until were close enough
+#  Definitely not optimized ! But when used, this is only done once
 #
 ####################################################################################################
 def SetVehicleAtUtm( the_map, vehicle, utm_x, utm_y, yaw ):
@@ -357,138 +363,35 @@ def SetVehicleAtUtm( the_map, vehicle, utm_x, utm_y, yaw ):
 
 ####################################################################################################
 #
-# Set up Carla Sim
+#  Set up Cavstar
 #
 ####################################################################################################
-# Function to setup cavstar /saquib
-def setup_cavstar(client, world, the_map, vehicle):
-    # try:
-    #     print( 'Creating a Carla Sim Client' )
-    #     client = carla.Client( '127.0.0.1', 2000 )
-    #     # Print the version but it had better match that which we set earlier
-    #     print( 'Carla client version: ', client.get_client_version() )
-    # except Exception:
-    #     print( 'Exception: Could not create Carla client.' )
-    #     sys.exit( 1 )
-
+def SetupCavstar(client, world, the_map, vehicle):
     try:
         print( 'The available maps for this Carla server are:' )
         print( client.get_available_maps() )
 
-        # Pick a map from the list provided, if not one of the Town ones then you should have
-        # built the tar.gz package distribution with the map embedded into it, which is...
-        # involved to say the least and needs RoadRunner exports to UE4 imports and build etc
-
-        # req_map = ''
-        # if( use_a_carla_built_in_map ):
-        #     #req_map = carla_map_path + 'Town01'
-        #     #req_map = carla_map_path + 'Town01_Opt'
-        #     #req_map = carla_map_path + 'Town02'
-        #     #req_map = carla_map_path + 'Town02_Opt'
-        #     req_map = carla_map_path + 'Town03'
-        #     #req_map = carla_map_path + 'Town03_Opt'
-        #     #req_map = carla_map_path + 'Town04'
-        #     #req_map = carla_map_path + 'Town04_Opt'
-        #     #req_map = carla_map_path + 'Town05'
-        #     #req_map = carla_map_path + 'Town05_Opt'
-        # else:
-        #     #req_map = carla_map_path + 'MWayShortFlat'
-        #     #req_map = carla_map_path + 'northTerminal/northTerminal'
-        #     req_map = carla_map_path + 'northBound/northBound'
-        #     #req_map = carla_map_path + 'southTerminal/southTerminal'
-        #     #req_map = carla_map_path + 'southBound/southBound'
-        #     #req_map = carla_map_path + 'noLoopShort'
-        #     # req_map = 'northBound'
-
-        # if req_map != '':
-        #     print( 'Requesting map: ', req_map )
-            # client.load_world( req_map )
     except Exception:
         print( 'Exception: Could not set the requested Carla world map.' )
         sys.exit( 1 )
 
     try:
         print( 'Setting world parameters' )
-        # world = client.get_world()
         world_settings = world.get_settings()
-
-        if want_synchronous_mode:
-            world_settings.synchronous_mode = True
-            world_settings.fixed_delta_seconds = 0.05
-            world_settings.substepping = True
-            world_settings.max_substep_delta_time = 0.01
-            world_settings.max_substeps = 10
-        else:
-            world_settings.synchronous_mode = False
-
+        world_settings.synchronous_mode = True
+        world_settings.fixed_delta_seconds = carla_time_delta
+        world_settings.substepping = False
+        world_settings.max_substep_delta_time = 0.02
+        world_settings.max_substeps = 10
         world.apply_settings( world_settings )
     except Exception:
         print( 'Exception: Setting world parameters.' )
         sys.exit( 1 )
 
     try:
-        print( 'Obtain the world map' )
-        # the_map = world.get_map()
-    except Exception:
-        print( 'Exception: Getting the map.' )
-        print( "You can get here if the XODR file was not included in the package." )
-        print( "You may need to manually get it and add it into the expanded package." )
-        sys.exit( 1 )
-
-    try:
-        pass
-        # vehicles = world.get_actors().filter( vehicle_blueprint_name )
-        # if len( vehicles ) == 0:
-        #     print( 'Spawn a new vehicle, look for a blueprint.' )
-        #     vehicle_bp = world.get_blueprint_library().filter( vehicle_blueprint_name )[0]
-        #     print( 'Using map default spawn location.' )
-        #     map_spawn = the_map.get_spawn_points()[0]
-        #     print( 'Defined spawn location:', map_spawn )
-        #     print( 'Transform spawn location to map coordinates.' )
-        #     map_geo = the_map.transform_to_geolocation( map_spawn.location )
-        #     print( 'Vehicle should be spawned at', utm.from_latlon( map_geo.latitude, map_geo.longitude ) )
-        #     print( 'Try and spawn a new vehicle.' )
-        #     vehicle = world.spawn_actor( vehicle_bp, map_spawn )
-        # else:
-        #     print( 'Using existing vehicle' )
-        #     vehicle = vehicles[0]
-        #     map_geo = the_map.transform_to_geolocation( vehicle.get_location() )
-        #     print( 'Vehicle found at', utm.from_latlon( map_geo.latitude, map_geo.longitude ) )
-
-        #     all_gnss = world.get_actors().filter('sensor.other.gnss')
-        #     for x in all_gnss:
-        #         x.destroy()
-    except Exception as ex:
-        print( 'Exception from creating vehicle: ', ex )
-        sys.exit( 1 )
-
-    try:
         print( 'Perform first tick' ) # so that the set vehicle locations can be obtained from them.
         world.tick();
-        # vehicles = world.get_actors().filter( vehicle_blueprint_name )
-        # print( 'Number of vehicles in sim:', len( vehicles ) )
-        # vehicle = vehicles[0]
         veh_trans = vehicle.get_transform()
-
-        # if req_map == carla_map_path + 'northBound/northBound':
-        #     # For northBound map, position the car at start point
-
-        #     # On the easterly Roundabout
-        #     #veh_trans.location.x = 1138.0
-        #     #veh_trans.location.y = 58.4
-        #     #veh_trans.rotation.yaw = -20.0
-
-        #     # On straight if testing lane offsets
-        #     veh_trans.location.x = 926.0
-        #     veh_trans.location.y = 143.0
-        #     veh_trans.rotation.yaw = -175.0
-
-        #     vehicle.set_transform( veh_trans )
-
-        # print( 'Vehicle is at position:', veh_trans )
-        # veh_hdg = (90 + 360 + veh_trans.rotation.yaw) % 360
-        # print( 'Note: This is heading:', round(veh_hdg,1) )
-
     except Exception:
         print( 'Exception: Setting world first tick' )
         sys.exit( 1 )
@@ -497,17 +400,6 @@ def setup_cavstar(client, world, the_map, vehicle):
         print( 'Setting camera high above the vehicle and pointing downwards at it.' )
         viewer = world.get_spectator()
         view_trans = veh_trans
-        # if req_map == carla_map_path + 'northBound/northBound':
-        #     view_trans.location.z = 200
-        #     view_trans.location.x = veh_trans.location.x
-        #     view_trans.location.y = veh_trans.location.y + 50
-        #     view_trans.rotation.yaw = -90
-        #     view_trans.rotation.pitch = -80
-        # else:
-        #     view_trans.location.z = 200
-        #     view_trans.location.y = -50
-        #     view_trans.rotation.pitch = -80
-
         view_trans.location.z = 50
         view_trans.location.x = veh_trans.location.x
         view_trans.location.y = veh_trans.location.y
@@ -527,7 +419,11 @@ def setup_cavstar(client, world, the_map, vehicle):
     return (viewer, )
 
 
-# Function to set up Sensor /saquib
+####################################################################################################
+#
+#  Set up Sensors
+#
+####################################################################################################
 class SetupSensors:
     def __init__(self, client, world, vehicle):
         self.gnss = None
@@ -627,170 +523,10 @@ class SetupSensors:
 
 ####################################################################################################
 #
-# Run Carla Sim in a loop
+#  Run Carla Sim in a loop
 #
 ####################################################################################################
-
-# Do you want to just collect up UTM coords of the map or drive it under sim or keyboard control
-# if gather_gnss_coords_for_map:
-#     print( 'Getting GNSS coords only' )
-#     if want_car_manual_control == False:
-#         vehicle.set_autopilot( True )
-#         while True:
-#             try:
-#                 world.tick()
-
-#                 if gnss_queue.qsize() > 0:
-#                     data = gnss_queue.get()
-#                     if data:
-#                         latitude = data.latitude
-#                         longitude = data.longitude
-
-#                         # Total hack to get the built in maps away from 0 lat which causes UTM issues
-#                         if( use_a_carla_built_in_map ):
-#                             latitude  = latitude  + 1.0
-#                             longitude = longitude + 1.0
-
-#                         utm_x, utm_y, utm_zone, utm_letter = utm.from_latlon( latitude, longitude )
-#                         if vehicle_gnss.UtmDist( utm_x, utm_y ) > 1.0:
-#                             vehicle_gnss.Set( latitude, longitude, utm_x, utm_y )
-#                             vehicle_gnss.PrintUtm()
-
-#             except RuntimeError as ex:
-#                 print('Exception: world tick:', ex )
-#     try:
-#         if want_car_manual_control:
-
-#             veh_throttle = 0.0
-#             veh_brake = 0.0
-#             veh_steer = 0.0
-#             veh_reverse = False
-
-#             # For northBound map
-#             veh_trans = vehicle.get_transform()
-#             veh_trans.location.x = 1100.0
-#             veh_trans.location.y = 75.0
-#             veh_trans.rotation.yaw = -45.0
-#             vehicle.set_transform( veh_trans )
-
-#             fixed_val = 0.0
-
-#             pygame.init()
-#             pygame.display.set_mode( (100,100) )
-#             now = GetMsFromStart() / 1000.0
-#             last_print = now
-#             while True:
-#                 now = GetMsFromStart() / 1000.0
-#                 try:
-#                     for event in pygame.event.get():
-#                         if event.type == pygame.QUIT:
-#                             sys.exit()
-#                         if event.type == pygame.KEYDOWN:
-#                             key = pygame.key.get_pressed()
-
-#                             if event.key == K_LEFT:
-#                                 veh_steer = veh_steer - 0.1;
-#                             if event.key == K_RIGHT:
-#                                 veh_steer = veh_steer + 0.1;
-#                             if event.key == K_UP:
-#                                 veh_throttle = veh_throttle + 0.1
-#                                 veh_brake = 0.0
-#                             if event.key == K_DOWN:
-#                                 veh_throttle = 0.0
-#                                 veh_brake = veh_brake + 0.1
-#                             if event.key == K_SPACE:
-#                                 veh_reverse = not veh_reverse
-#                             if event.key == K_1:
-#                                 fixed_val = 0.1
-#                                 print( "Fixed Val = ", fixed_val )
-#                             if event.key == K_2:
-#                                 fixed_val = 0.2
-#                                 print( "Fixed Val = ", fixed_val )
-#                             if event.key == K_3:
-#                                 fixed_val = 0.3
-#                                 print( "Fixed Val = ", fixed_val )
-#                             if event.key == K_4:
-#                                 fixed_val = 0.4
-#                                 print( "Fixed Val = ", fixed_val )
-#                             if event.key == K_5:
-#                                 fixed_val = 0.5
-#                                 print( "Fixed Val = ", fixed_val )
-#                             if event.key == K_6:
-#                                 fixed_val = 0.6
-#                                 print( "Fixed Val = ", fixed_val )
-#                             if event.key == K_7:
-#                                 fixed_val = 0.7
-#                                 print( "Fixed Val = ", fixed_val )
-#                             if event.key == K_8:
-#                                 fixed_val = 0.8
-#                                 print( "Fixed Val = ", fixed_val )
-#                             if event.key == K_9:
-#                                 fixed_val = 0.9
-#                                 print( "Fixed Val = ", fixed_val )
-#                             if event.key == K_0:
-#                                 fixed_val = 1.0
-#                                 print( "Fixed Val = ", fixed_val )
-
-#                     if fixed_val != 0.0:
-#                         cur_vel = vehicle.get_velocity()
-#                         if cur_vel.x > 20.0:
-#                             print( "Velocity:", cur_vel.x )
-#                             print( "Applying brakes at:", fixed_val )
-#                             veh_throttle = 0.0
-#                             veh_brake = fixed_val
-#                             fixed_val = 0.0
-
-#                 except Exception as ex:
-#                     print( 'Pygame exception:', ex )
-
-#                 try:
-#                     if veh_steer < -0.001:
-#                         veh_steer = veh_steer + 0.005
-#                     if veh_steer > 0.001:
-#                         veh_steer = veh_steer - 0.005
-
-#                     veh_throttle = veh_throttle - 0.001
-#                     veh_brake = veh_brake - 0.001
-
-#                     veh_steer    = min( 1.0, max( -1.0, veh_steer ) )
-#                     veh_throttle = min( 1.0, max(  0.0, veh_throttle ) )
-#                     veh_brake    = min( 1.0, max(  0.0, veh_brake ) )
-
-#                     vehicle.apply_control( carla.VehicleControl( throttle = veh_throttle, steer = veh_steer, brake = veh_brake, reverse = veh_reverse ) )
-#                     #print( f'Vehicle St/Th/Br/Rv: {veh_steer: 8.3f}, {veh_throttle: 8.3f}, {veh_brake: 8.3f}', veh_reverse )
-#                 except Exception as ex:
-#                     print('Exception: vehicle control:', ex )
-
-#                 if gnss_queue.qsize() > 0:
-#                     data = gnss_queue.get()
-#                     if data:
-#                         latitude = data.latitude
-#                         longitude = data.longitude
-
-#                         # Total hack to get the built in maps away from 0 lat which causes UTM issues
-#                         if( use_a_carla_built_in_map ):
-#                             latitude  = latitude  + 1.0
-#                             longitude = longitude + 1.0
-
-#                         utm_x, utm_y, utm_zone, utm_letter = utm.from_latlon( latitude, longitude )
-#                         if vehicle_gnss.UtmDist( utm_x, utm_y ) > 1.0:
-#                             vehicle_gnss.Set( latitude, longitude, utm_x, utm_y )
-#                             vehicle_gnss.PrintUtmWithTime()
-#                             car_pos = vehicle.get_location()
-#                             print( round( car_pos.x,5 ), round( car_pos.y,5 ) )
-
-
-#                 try:
-#                     world.wait_for_tick()
-#                 except Exception as ex:
-#                     print('Exception: waiting for world tick:', ex )
-#     except KeyboardInterrupt:
-#         print( 'Keyboard interrupt, exiting...' )
-# else:
-
-# initialize variables /saquib
 steering_lock_angle_rad = 55 * 3.14159 / 180
-
 speed_error_integral = 0
 
 veh_utm_x = 0.0
@@ -827,11 +563,9 @@ last_update_gnss_time = 0.0
 last_update_SOBS_time = 0.0
 last_sent_SIMT = 0.0
 
-# Before get going proper, send a message about where the car is.
-wait_for_start = 1
 
 
-def riff_clients():
+def RiffClients():
     gnss_riff_client.connect()
     mems_riff_client.connect()
     lane_riff_client.connect()
@@ -846,74 +580,131 @@ def riff_clients():
     radar_riff_message = radar_riff_client.receive()
 
 
-def wait_for_start(world, vehicle):
+def WaitForStart(world, vehicle):
+    global cavstar_time
+    global carla_time
+    global carla_time_delta
     global steering_lock_angle_rad
-
     global speed_error_integral
-
     global veh_utm_x
     global veh_utm_y
     global veh_hdg
     global timestamp_offset
 
-    # Before get going proper, send a message about where the car is.
-    global wait_for_start
-    wait_for_start = 1
-    while wait_for_start:
-        riff_clients()
-        if gnss_queue.qsize() > 0:
-            data = gnss_queue.get()
-            if data:
-                latitude  = data.latitude
-                longitude = data.longitude
+    global simtime_riff_client
+    global simtime_riff_message
+    global last_sent_SIMT
 
-                # Total hack to get the built in maps away from 0 lat which causes UTM issues
-                if( use_a_carla_built_in_map ):
-                    latitude  = latitude  + 1.0
-                    longitude = longitude + 1.0
+    try:
+        world.tick()
+    except Exception as ex:
+        print('Exception: In WaitForStart, Tick:', ex )
+        sys.exit( 1 )
 
-                utm_x, utm_y, utm_zone, utm_letter = utm.from_latlon( latitude, longitude )
+    now = GetMsFromStart() / 1000.0
 
-                last_veh_utm_x = utm_x
-                last_veh_utm_y = utm_y
-                veh_utm_x = utm_x
-                veh_utm_y = utm_y
-                veh_hdg = (90 + 360 + vehicle.get_transform().rotation.yaw) % 360
+    carla_time = 0.0
+    cavstar_time = carla_time;
+    print( 'Initial Carla time:', carla_time )
 
-                now = GetMsFromStart() / 1000.0
+    latitude  = 0.0
+    longitude = 0.0
+    if gnss_queue.qsize() > 0:
+        data = gnss_queue.get()
+        if data:
+            latitude  = data.latitude
+            longitude = data.longitude
 
-                # Return position and heading to the controller
-                riff_MNC_SGLH.utm_northing = veh_utm_y
-                riff_MNC_SGLH.utm_easting = veh_utm_x
-                riff_MNC_SGLH.heading = veh_hdg
-                riff_MNC_SGLH.heading_rate = 0
-                riff_MNC_SGLH.timestamp = timestamp_offset + now
+    print( 'WaitForStart synchronous mode. Wait for simtime client to connect' )
+    while True:
+        RiffClients()
+        if simtime_riff_client.connected():
+            break;
 
-                gnss_riff_message.tag = b'SGLH'
-                gnss_riff_message.length = ctypes.sizeof( riff_MNC_SGLH )
-                gnss_riff_message.data   = ctypes.byref(  riff_MNC_SGLH )
-                gnss_riff_client.write( gnss_riff_message )
+    print( 'WaitForStart synchronous mode. Simtime client connected. Send initial carla time to it.' )
+    riff_MC_SIMT.time = carla_time
+    simtime_riff_message.tag = b'SIMT'
+    simtime_riff_message.length = ctypes.sizeof( riff_MC_SIMT )
+    simtime_riff_message.data   = ctypes.byref(  riff_MC_SIMT )
+    simtime_riff_client.write( simtime_riff_message );
+    last_sent_SIMT = now;
 
-                wait_for_start = 0
-                print( "Got Start" )
+    # Before get going proper:
+    #  Get cavstars current simtime
+    #  Send a message about where the car is.
+    print( 'Wait for starting conditions' );
+    wait_for_start = 0
+    while wait_for_start != 3:
+        now = GetMsFromStart() / 1000.0
+        RiffClients()
+
+        if (wait_for_start & 2) == 0:
+            if now - last_sent_SIMT > 1.0:
+                riff_MC_SIMT.time = carla_time
+                simtime_riff_message.tag = b'SIMT'
+                simtime_riff_message.length = ctypes.sizeof( riff_MC_SIMT )
+                simtime_riff_message.data   = ctypes.byref(  riff_MC_SIMT )
+                simtime_riff_client.write( simtime_riff_message );
+                print( 'Sending out simtime (Carla Time) as:', carla_time )
+                last_sent_SIMT = now;
+
+            try: simtime_riff_message = simtime_riff_client.receive()
+            except:
+                print( 'No connection to simtime' )
+                pass # Continue if the connection is lost
+
+            length = simtime_riff_message.length.value
+            data = simtime_riff_message.data
+            if simtime_riff_message.tag.value == b'SIMT':
+                if length == ctypes.sizeof( riff_MC_SIMT ):
+                    ctypes.memmove( ctypes.byref( riff_MC_SIMT ), data, length )
+                    cavstar_time = riff_MC_SIMT.time;
+                    carla_time = cavstar_time;
+                    print( 'Initial CavStar/Carla Time is:', cavstar_time )
+                    wait_for_start |= 2
+                else:
+                    print( 'SIMT length bad' )
         else:
-            try:
-                world.wait_for_tick()
-            except Exception as ex:
-                print('Exception: waiting for world tick:', ex )
+            wait_for_start |= 2
+
+
+        if (wait_for_start & 1) == 0:
+            utm_x, utm_y, utm_zone, utm_letter = utm.from_latlon( latitude, longitude )
+
+            last_veh_utm_x = utm_x
+            last_veh_utm_y = utm_y
+            veh_utm_x = utm_x
+            veh_utm_y = utm_y
+            veh_hdg = (90 + 360 + vehicle.get_transform().rotation.yaw) % 360
+
+            # Return position and heading to the controller
+            riff_MNC_SGLH.utm_northing = veh_utm_y
+            riff_MNC_SGLH.utm_easting = veh_utm_x
+            riff_MNC_SGLH.heading = veh_hdg
+            riff_MNC_SGLH.heading_rate = 0
+            riff_MNC_SGLH.timestamp = timestamp_offset + now
+
+            gnss_riff_message.tag = b'SGLH'
+            gnss_riff_message.length = ctypes.sizeof( riff_MNC_SGLH )
+            gnss_riff_message.data   = ctypes.byref(  riff_MNC_SGLH )
+            gnss_riff_client.write( gnss_riff_message )
+
+            wait_for_start |= 1
+    print( 'Finished starting conditions' );
 
 
 
-
-# Run vehicle with CAVstar
-def run_step(world, the_map, viewer, vehicle):
-    global gnss_riff_message
-    global veh_control_riff_client
-
+####################################################################################################
+#
+#  Run a time step
+#
+####################################################################################################
+def RunStep(world, the_map, viewer, vehicle):
+    global cavstar_time
+    global carla_time
+    global carla_time_delta
     global steering_lock_angle_rad
-
     global speed_error_integral
-
     global veh_utm_x
     global veh_utm_y
     global last_veh_utm_x
@@ -938,8 +729,23 @@ def run_step(world, the_map, viewer, vehicle):
     global wheel_utm_x
     global wheel_utm_y
     global timestamp_offset
-
     global frame_counter
+
+    global gnss_riff_client
+    global mems_riff_client
+    global lane_riff_client
+    global radar_riff_client
+    global veh_control_riff_client
+    global simtime_riff_client
+
+    global gnss_riff_message
+    global mems_riff_message
+    global lane_riff_message
+    global radar_riff_message
+    global other_objs_riff_message
+    global veh_control_riff_message
+    global simtime_riff_message
+
     global last_update_SVF_time
     global last_update_SGLH_time
     global last_update_SMSD_time
@@ -950,10 +756,11 @@ def run_step(world, the_map, viewer, vehicle):
     global last_sent_SIMT
 
     try:
-        riff_clients()
-
-        frame_counter = frame_counter + 1
         now = GetMsFromStart() / 1000.0
+        start_frame_time = now;
+        frame_counter = frame_counter + 1
+
+        RiffClients()
 
         if ccam_queue.qsize() > 0:
             if want_car_camera_debug_filenames:
@@ -988,113 +795,113 @@ def run_step(world, the_map, viewer, vehicle):
                 else:
                     print( 'Unexpected vehicle controller motion length', length )
 
-        #print( 'Do simtime' )
-        while True: # We only want the latest one
-            try: simtime_riff_message = simtime_riff_client.receive()
-            except:
-                print( 'No connection to simtime' )
-                pass # Continue if the connection is lost
-            length = simtime_riff_message.length.value
-            data = simtime_riff_message.data
-            if not length:
-                #print( 'Simtime msg has no length' )
-                break
-            if simtime_riff_message.tag.value == b'SIMT':
-                if length == ctypes.sizeof( riff_MC_SIMT ):
-                    ctypes.memmove( ctypes.byref( riff_MC_SIMT ), data, length )
-                    simtime = riff_MC_SIMT.time;
-                    #print( 'SIMT : SimTime:', simtime )
-                else:
-                    print( 'Unexpected simtime length', length )
-            else:
-                print( 'Simtime tag was not SIMT' )
 
-        if 0 and now - last_sent_SIMT > 1.0:
-            riff_MC_SIMT.time = now
-            simtime_riff_message.tag = b'SIMT'
-            simtime_riff_message.length = ctypes.sizeof( riff_MC_SIMT )
-            simtime_riff_message.data   = ctypes.byref(  riff_MC_SIMT )
-            simtime_riff_client.write( simtime_riff_message );
-            #print( 'Sending out Simtime as ', now )
-            last_sent_SIMT = now;
+        inc_dist = veh_spd * carla_time_delta;
+        distance_left  = distance_left  + inc_dist
+        distance_right = distance_right + inc_dist
+        turning_angle = veh_steer * steering_lock_angle_rad
+        if turning_angle < -0.02 or turning_angle > 0.02:
+            turn_radius = veh_wheelbase / math.tan( turning_angle )
+            extra_dist = (inc_dist / turn_radius) * (veh_width / 2)
+            distance_left  -= extra_dist
+            distance_right += extra_dist
+            #print( "Turn angle:", round(turning_angle,3), "  turn radius:", round(turn_radius,1), "  extra dist:", round(extra_dist,3) )
 
-        if now - last_update_SVF_time > 0.1:
-            dt = now - last_update_SVF_time;
+        # Calc absolute wheel positions to compare with gnss
+        gnss_wheel_dx = math.fabs( veh_utm_x - wheel_utm_x )
+        gnss_wheel_dy = math.fabs( veh_utm_y - wheel_utm_y )
 
-            inc_dist = veh_spd * dt;
-            distance_left  = distance_left  + inc_dist
-            distance_right = distance_right + inc_dist
-            turning_angle = veh_steer * steering_lock_angle_rad
-            if turning_angle < -0.02 or turning_angle > 0.02:
-                turn_radius = veh_wheelbase / math.tan( turning_angle )
-                extra_dist = (inc_dist / turn_radius) * (veh_width / 2)
-                distance_left  -= extra_dist
-                distance_right += extra_dist
-                #print( "Turn angle:", round(turning_angle,3), "  turn radius:", round(turn_radius,1), "  extra dist:", round(extra_dist,3) )
+        if gnss_wheel_dx > 1000.0 or gnss_wheel_dy > 1000.0:
+            wheel_utm_x = veh_utm_x
+            wheel_utm_y = veh_utm_y
 
-            # Calc absolute wheel positions to compare with gnss
-            gnss_wheel_dx = math.fabs( veh_utm_x - wheel_utm_x )
-            gnss_wheel_dy = math.fabs( veh_utm_y - wheel_utm_y )
+        # Note heading is not same as math angle hence sin/cos swap
+        i = inc_dist * math.sin( veh_hdg * 3.14159 / 180 )
+        j = inc_dist * math.cos( veh_hdg * 3.14159 / 180 )
+        #print( 'Hdg, Spd, Inc, Wheel ij:', round(veh_hdg,1), round(veh_spd,3), round(inc_dist,3), round(i,3), round(j,3) )
 
-            if gnss_wheel_dx > 1000.0 or gnss_wheel_dy > 1000.0:
-                wheel_utm_x = veh_utm_x
-                wheel_utm_y = veh_utm_y
+        wheel_utm_x += i
+        wheel_utm_y += j
+        gnss_wheel_dx = veh_utm_x - wheel_utm_x
+        gnss_wheel_dy = veh_utm_y - wheel_utm_y
+        #print( 'V/W', round(veh_utm_x,3), round(veh_utm_y,3), round(wheel_utm_x,3), round(wheel_utm_y,3) )
+        #print( 'delta Veh:Wheel x,y:', round(gnss_wheel_dx,3), round(gnss_wheel_dy,3) )
 
-            # Note heading is not same as math angle hence sin/cos swap
-            i = inc_dist * math.sin( veh_hdg * 3.14159 / 180 )
-            j = inc_dist * math.cos( veh_hdg * 3.14159 / 180 )
-            #print( 'Hdg, Spd, Inc, Wheel ij:', round(veh_hdg,1), round(veh_spd,3), round(inc_dist,3), round(i,3), round(j,3) )
+        # SVC steer torque is +ve to left
+        # SVF steer angle is +ve to left in radians
+        # Carla steer is +ve right
+        # So we will adopt +ve left and give carla -ve of it
 
-            wheel_utm_x += i
-            wheel_utm_y += j
-            gnss_wheel_dx = veh_utm_x - wheel_utm_x
-            gnss_wheel_dy = veh_utm_y - wheel_utm_y
-            #print( 'V/W', round(veh_utm_x,3), round(veh_utm_y,3), round(wheel_utm_x,3), round(wheel_utm_y,3) )
-            #print( 'delta Veh:Wheel x,y:', round(gnss_wheel_dx,3), round(gnss_wheel_dy,3) )
+        # Need to convert steer torque to steer angle.
+        # Integrate torque with dt (carla_time_delta) - a torque of 0.2 gives one radian per second on the van
+
+        veh_throttle = req_throttle
+        veh_brake    = req_brake
+        veh_steer    += req_steer_torque * carla_time_delta / (0.2 * steering_lock_angle_rad)
+
+        veh_throttle = min( 1.0, max(  0.0, veh_throttle ) )
+        veh_brake    = min( 1.0, max(  0.0, veh_brake ) )
+        veh_steer    = min( 1.0, max( -1.0, veh_steer ) )
+
+        #if tron:
+        #    print( 'Throttle:', round( veh_throttle, 2), '   Steer:', round( veh_steer * steering_lock_angle_rad, 1), '  Brake:', round( veh_brake,2 ) )
+
+        # print(veh_throttle, -1.0 * veh_steer, veh_brake)
+        vehicle.apply_control( carla.VehicleControl( throttle = veh_throttle, steer = -1.0 * veh_steer, brake = veh_brake ) )
+
+        # Must feedback state of the motion to the controller in order to set the heading and the timestamp for it
+        riff_MC_SVF.timestamp = timestamp_offset + now
+        riff_MC_SVF.distance_left = distance_left
+        riff_MC_SVF.distance_right = distance_right
+        riff_MC_SVF.turning_angle = veh_steer * steering_lock_angle_rad
+        riff_MC_SVF.padding = 0.0
+
+        veh_control_riff_message.tag = b'SVF '
+        veh_control_riff_message.length = ctypes.sizeof( riff_MC_SVF )
+        veh_control_riff_message.data   = ctypes.byref(  riff_MC_SVF )
+        veh_control_riff_client.write( veh_control_riff_message );
+        last_update_SVF_time = now
+        #print( "Sent distance left,right as", round(distance_left,1), round(distance_right,1) )
+        #print( 'Send SVF : turn_angle (in rads):', round( riff_MC_SVF.turning_angle,3) )
 
 
-            # SVC steer torque is +ve to left
-            # SVF steer angle is +ve to left in radians
-            # Carla steer is +ve right
-            # So we will adopt +ve left and give carla -ve of it
-
-            # Need to convert steer torque to steer angle.
-            # Integrate torque with dt - a torque of 0.2 gives one radian per second on the van
-
-            veh_throttle = req_throttle
-            veh_brake    = req_brake
-            veh_steer    += req_steer_torque * dt / (0.2 * steering_lock_angle_rad)
-
-            veh_throttle = min( 1.0, max(  0.0, veh_throttle ) )
-            veh_brake    = min( 1.0, max(  0.0, veh_brake ) )
-            veh_steer    = min( 1.0, max( -1.0, veh_steer ) )
-
-            #if tron:
-            #    print( 'Throttle:', round( veh_throttle, 2), '   Steer:', round( veh_steer * steering_lock_angle_rad, 1), '  Brake:', round( veh_brake,2 ) )
-
-            # print(veh_throttle, -1.0 * veh_steer, veh_brake)
-            vehicle.apply_control( carla.VehicleControl( throttle = veh_throttle, steer = -1.0 * veh_steer, brake = veh_brake ) )
-
-            # Must feedback state of the motion to the controller in order to set the heading and the timestamp for it
-            riff_MC_SVF.timestamp = timestamp_offset + now
-            riff_MC_SVF.distance_left = distance_left
-            riff_MC_SVF.distance_right = distance_right
-            riff_MC_SVF.turning_angle = veh_steer * steering_lock_angle_rad
-            riff_MC_SVF.padding = 0.0
-
-            veh_control_riff_message.tag = b'SVF '
-            veh_control_riff_message.length = ctypes.sizeof( riff_MC_SVF )
-            veh_control_riff_message.data   = ctypes.byref(  riff_MC_SVF )
-            veh_control_riff_client.write( veh_control_riff_message );
-            last_update_SVF_time = now
-            #print( "Sent distance left,right as", round(distance_left,1), round(distance_right,1) )
-            #print( 'Send SVF : turn_angle (in rads):', round( riff_MC_SVF.turning_angle,3) )
-
+        # OK lets move on another time slot then send over all of the new cavstar data from it
         try:
-            world.wait_for_tick()
+            world.tick()
         except Exception as ex:
-            print('Exception: waiting for world tick:', ex )
+            print('Exception: requesting a world tick:', ex )
             sys.exit( 1 )
+
+        carla_time += carla_time_delta
+        #print( 'Carla time now:', carla_time )
+
+        #print( 'Wait for simtime client to connect' )
+        while True:
+            RiffClients()
+            if simtime_riff_client.connected():
+                break;
+        #print( 'Send cavstar new carla_time.' )
+        riff_MC_SIMT.time = carla_time;
+        simtime_riff_message.tag = b'SIMT'
+        simtime_riff_message.length = ctypes.sizeof( riff_MC_SIMT )
+        simtime_riff_message.data   = ctypes.byref(  riff_MC_SIMT )
+        simtime_riff_client.write( simtime_riff_message );
+        #print( 'Sending out Simtime as ', carla_time )
+
+        if cavstar_time < carla_time:
+            #print( 'RunStep: Wait whilst cavstar time is not yet carla_time:', cavstar_time, carla_time )
+            sim_time = 0;
+            while sim_time < carla_time:
+                RiffClients()
+                simtime_riff_message = simtime_riff_client.receive()
+                length = simtime_riff_message.length.value
+                if simtime_riff_message.tag.value == b'SIMT' and length == ctypes.sizeof( riff_MC_SIMT ):
+                    data = simtime_riff_message.data
+                    ctypes.memmove( ctypes.byref( riff_MC_SIMT ), data, length )
+                    sim_time = riff_MC_SIMT.time;
+                    #print( 'Got SimTime:', sim_time )
+            cavstar_time = sim_time;
+            #print( 'CavStar and Carla times now:', cavstar_time, carla_time )
 
         # A world tick might take some time. So what is the new 'now'.
         now = GetMsFromStart() / 1000.0
@@ -1114,87 +921,84 @@ def run_step(world, the_map, viewer, vehicle):
         if gnss_queue.qsize() > 0:
             data = gnss_queue.get()
             if data:
-                if now - last_update_gnss_time > gnss_tick_rate:
-                    latitude  = data.latitude
-                    longitude = data.longitude
+                latitude  = data.latitude
+                longitude = data.longitude
 
-                    # Total hack to get the built in maps away from 0 lat which causes UTM issues
-                    if( use_a_carla_built_in_map ):
-                        latitude  = latitude  + 1.0
-                        longitude = longitude + 1.0
+                # Total hack to get the built in maps away from 0 lat which causes UTM issues
+                if( use_a_carla_built_in_map ):
+                    latitude  = latitude  + 1.0
+                    longitude = longitude + 1.0
 
-                    # Work out vehicle position, speed and heading
-                    utm_x, utm_y, utm_zone, utm_letter = utm.from_latlon( latitude, longitude )
-                    #print( "LatLng:", latitude, longitude )
-                    #print( "UTM:", utm_x, utm_y )
+                # Work out vehicle position, speed and heading
+                utm_x, utm_y, utm_zone, utm_letter = utm.from_latlon( latitude, longitude )
+                #print( "LatLng:", latitude, longitude )
+                #print( "UTM:", utm_x, utm_y )
 
-                    last_veh_utm_x = veh_utm_x
-                    last_veh_utm_y = veh_utm_y
-                    veh_utm_x = utm_x
-                    veh_utm_y = utm_y
+                last_veh_utm_x = veh_utm_x
+                last_veh_utm_y = veh_utm_y
+                veh_utm_x = utm_x
+                veh_utm_y = utm_y
 
-                    veh_hdg = (90 + 360 + vehicle.get_transform().rotation.yaw) % 360
+                veh_hdg = (90 + 360 + vehicle.get_transform().rotation.yaw) % 360
 
-                    dx = veh_utm_x - last_veh_utm_x
-                    dy = veh_utm_y - last_veh_utm_y
-                    dist = dx*dx + dy*dy
-                    if dist > 0.0:
-                        dist = math.sqrt( dist )
-                    dt = now - last_update_gnss_time
-                    veh_spd = dist / dt
+                dx = veh_utm_x - last_veh_utm_x
+                dy = veh_utm_y - last_veh_utm_y
+                dist = dx*dx + dy*dy
+                if dist > 0.0:
+                    dist = math.sqrt( dist )
+                dt = now - last_update_gnss_time
+                veh_spd = dist / dt
 
-                    # How does this compare with the velocity as stated by Carla ?
-                    vel = vehicle.get_velocity()
-                    veh_spd2 = vel.x * vel.x + vel.y * vel.y
-                    if veh_spd2 > 0.0:
-                        veh_spd2 = math.sqrt( veh_spd2 )
+                # How does this compare with the velocity as stated by Carla ?
+                vel = vehicle.get_velocity()
+                veh_spd2 = vel.x * vel.x + vel.y * vel.y
+                if veh_spd2 > 0.0:
+                    veh_spd2 = math.sqrt( veh_spd2 )
 
-                    #print( 'Spd, Dst, Time Spd2:', veh_spd, dist, dt, veh_spd2 )
-                    last_update_gnss_time = now;
+                #print( 'Spd, Dst, Time Spd2:', veh_spd, dist, dt, veh_spd2 )
+                last_update_gnss_time = now;
 
         if imu_queue.qsize() > 0:
             data = imu_queue.get()
             if data:
-                if now - last_update_SMSD_time > 0.1:
-                    dt = now - last_update_SMSD_time;
-                    last_update_SMSD_time = now;
+                dt = now - last_update_SMSD_time;
+                last_update_SMSD_time = now;
 
-                    riff_MNC_SMSD.timestamp = timestamp_offset + now
-                    riff_MNC_SMSD.forward   = -data.accelerometer.x
-                    riff_MNC_SMSD.left      = -data.accelerometer.y
-                    riff_MNC_SMSD.up        = data.accelerometer.z
-                    riff_MNC_SMSD.yaw       = -data.gyroscope.z
-                    riff_MNC_SMSD.pitch     = -data.gyroscope.y
-                    riff_MNC_SMSD.roll      = -data.gyroscope.x
+                riff_MNC_SMSD.timestamp = timestamp_offset + now
+                riff_MNC_SMSD.forward   = -data.accelerometer.x
+                riff_MNC_SMSD.left      = -data.accelerometer.y
+                riff_MNC_SMSD.up        = data.accelerometer.z
+                riff_MNC_SMSD.yaw       = -data.gyroscope.z
+                riff_MNC_SMSD.pitch     = -data.gyroscope.y
+                riff_MNC_SMSD.roll      = -data.gyroscope.x
 
-                    mems_riff_message.tag = b'SMSD'
-                    mems_riff_message.length = ctypes.sizeof( riff_MNC_SMSD )
-                    mems_riff_message.data   = ctypes.byref(  riff_MNC_SMSD )
-                    mems_riff_client.write( mems_riff_message );
+                mems_riff_message.tag = b'SMSD'
+                mems_riff_message.length = ctypes.sizeof( riff_MNC_SMSD )
+                mems_riff_message.data   = ctypes.byref(  riff_MNC_SMSD )
+                mems_riff_client.write( mems_riff_message );
 
-                    # From cavstar.conf
-                    wheelbase = 4.0
-                    turn = veh_steer * steering_lock_angle_rad
-                    yaw_steer = veh_spd * math.tan( turn ) / wheelbase
-                    #print( 'GyroZ/Yaw/s, turn, Spd, TA/s:', round( -data.gyroscope.z,5 ), round( turn, 5), round( veh_spd,3 ), round( yaw_steer, 5 ) )
-                    #print( 'Send SMSD: Acc, Gyro: ', round(data.accelerometer.x,3), round(data.accelerometer.y,3), round(data.accelerometer.z,3), round(data.gyroscope.x,3), round(data.gyroscope.y,3), round(data.gyroscope.z,3) )
+                # From cavstar.conf
+                wheelbase = 4.0
+                turn = veh_steer * steering_lock_angle_rad
+                yaw_steer = veh_spd * math.tan( turn ) / wheelbase
+                #print( 'GyroZ/Yaw/s, turn, Spd, TA/s:', round( -data.gyroscope.z,5 ), round( turn, 5), round( veh_spd,3 ), round( yaw_steer, 5 ) )
+                #print( 'Send SMSD: Acc, Gyro: ', round(data.accelerometer.x,3), round(data.accelerometer.y,3), round(data.accelerometer.z,3), round(data.gyroscope.x,3), round(data.gyroscope.y,3), round(data.gyroscope.z,3) )
 
-        if now - last_update_SGLH_time > 0.1:
-            heading_rate = (veh_hdg - riff_MNC_SGLH.heading) / (now - last_update_SGLH_time);
-            last_update_SGLH_time = now
+        heading_rate = (veh_hdg - riff_MNC_SGLH.heading) / (now - last_update_SGLH_time);
+        last_update_SGLH_time = now
 
-            # Return position and heading to the controller
-            riff_MNC_SGLH.utm_northing = veh_utm_y
-            riff_MNC_SGLH.utm_easting = veh_utm_x
-            riff_MNC_SGLH.heading = veh_hdg
-            riff_MNC_SGLH.heading_rate = heading_rate
-            riff_MNC_SGLH.timestamp = timestamp_offset + now
+        # Return position and heading to the controller
+        riff_MNC_SGLH.utm_northing = veh_utm_y
+        riff_MNC_SGLH.utm_easting = veh_utm_x
+        riff_MNC_SGLH.heading = veh_hdg
+        riff_MNC_SGLH.heading_rate = heading_rate
+        riff_MNC_SGLH.timestamp = timestamp_offset + now
 
-            gnss_riff_message.tag = b'SGLH'
-            gnss_riff_message.length = ctypes.sizeof( riff_MNC_SGLH )
-            gnss_riff_message.data   = ctypes.byref(  riff_MNC_SGLH )
-            gnss_riff_client.write( gnss_riff_message );
-            #print( 'Send SGLH: x,y,hdg: ', round(veh_utm_x,1), round(veh_utm_y,1), round(veh_hdg,3) )
+        gnss_riff_message.tag = b'SGLH'
+        gnss_riff_message.length = ctypes.sizeof( riff_MNC_SGLH )
+        gnss_riff_message.data   = ctypes.byref(  riff_MNC_SGLH )
+        gnss_riff_client.write( gnss_riff_message );
+        #print( 'Send SGLH: x,y,hdg: ', round(veh_utm_x,1), round(veh_utm_y,1), round(veh_hdg,3) )
 
         # Lane invasion detector has new data ?
         if lid_queue.qsize() > 0:
@@ -1255,9 +1059,7 @@ def run_step(world, the_map, viewer, vehicle):
                     radar_riff_client.write( radar_riff_message );
                     #print( 'Sent Radar SOBS message with', det_array_count, 'entries of size', radar_riff_message.length )
 
-        if want_lane_offsets and ((now - last_update_SLP_time) > 0.1):
-            last_update_SLP_time = now
-
+        if want_lane_offsets:
             debug_this_pass = False
             if want_lane_offset_debug and ((now - last_update_SLP_time_debug) > 0.5):
                 last_update_SLP_time_debug = now
@@ -1417,9 +1219,7 @@ def run_step(world, the_map, viewer, vehicle):
             lane_riff_message.data   = ctypes.byref(  riff_MNC_SLP )
             lane_riff_client.write( lane_riff_message );
 
-        if want_other_objects and ((now - last_update_SOBS_time) > 0.05):
-            last_update_SOBS_time = now
-
+        if want_other_objects:
             # Get stats about the vehicle
             veh_trans = vehicle.get_transform()
             veh_geo = the_map.transform_to_geolocation( veh_trans.location )
@@ -1488,6 +1288,12 @@ def run_step(world, the_map, viewer, vehicle):
             other_objs_riff_message.length = ctypes.sizeof( ctypes.c_float ) * (num_other_objects * 4)
             other_objs_riff_message.data   = ctarray
             radar_riff_client.write( other_objs_riff_message );
+
+        now = GetMsFromStart() / 1000.0
+        end_frame_time = now;
+        dt = end_frame_time - start_frame_time;
+        if dt < (1.0/30.0):
+            time.sleep( (1.0/30.0) - dt )
 
     except KeyboardInterrupt:
         print( 'Keyboard interrupt, exiting...' )
