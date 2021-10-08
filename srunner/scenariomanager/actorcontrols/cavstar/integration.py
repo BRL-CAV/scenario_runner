@@ -380,9 +380,9 @@ def SetupCavstar(client, world, the_map, vehicle):
         world_settings = world.get_settings()
         world_settings.synchronous_mode = True
         world_settings.fixed_delta_seconds = carla_time_delta
-        world_settings.substepping = False
-        world_settings.max_substep_delta_time = 0.02
-        world_settings.max_substeps = 10
+        world_settings.substepping = True
+        world_settings.max_substep_delta_time = 0.01
+        world_settings.max_substeps = 16
         world.apply_settings( world_settings )
     except Exception:
         print( 'Exception: Setting world parameters.' )
@@ -864,22 +864,19 @@ def RunStep(world, the_map, viewer, vehicle):
         #print( "Sent distance left,right as", round(distance_left,1), round(distance_right,1) )
         #print( 'Send SVF : turn_angle (in rads):', round( riff_MC_SVF.turning_angle,3) )
 
-
-        # OK lets move on another time slot then send over all of the new cavstar data from it
-        try:
-            world.tick()
-        except Exception as ex:
-            print('Exception: requesting a world tick:', ex )
-            sys.exit( 1 )
+        world_settings = world.get_settings()
+        carla_time_delta = world_settings.fixed_delta_seconds
 
         carla_time += carla_time_delta
         #print( 'Carla time now:', carla_time )
 
         #print( 'Wait for simtime client to connect' )
         while True:
-            RiffClients()
             if simtime_riff_client.connected():
                 break;
+            else:
+                RiffClients()
+
         #print( 'Send cavstar new carla_time.' )
         riff_MC_SIMT.time = carla_time;
         simtime_riff_message.tag = b'SIMT'
@@ -892,7 +889,6 @@ def RunStep(world, the_map, viewer, vehicle):
             #print( 'RunStep: Wait whilst cavstar time is not yet carla_time:', cavstar_time, carla_time )
             sim_time = 0;
             while sim_time < carla_time:
-                RiffClients()
                 simtime_riff_message = simtime_riff_client.receive()
                 length = simtime_riff_message.length.value
                 if simtime_riff_message.tag.value == b'SIMT' and length == ctypes.sizeof( riff_MC_SIMT ):
@@ -903,7 +899,7 @@ def RunStep(world, the_map, viewer, vehicle):
             cavstar_time = sim_time;
             #print( 'CavStar and Carla times now:', cavstar_time, carla_time )
 
-        # A world tick might take some time. So what is the new 'now'.
+        # A SimTime tick might take some time. So what is the new 'now'.
         now = GetMsFromStart() / 1000.0
 
         if want_viewer_nailed_to_front_of_vehicle:
