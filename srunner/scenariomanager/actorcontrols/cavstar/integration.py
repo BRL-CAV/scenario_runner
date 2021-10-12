@@ -57,7 +57,7 @@ next_cam_frame = 1
 
 # Nail the viewer to the front of the car per frame and use a screen capture method to grab the result
 # This is way faster and runs realtime.
-want_viewer_nailed_to_front_of_vehicle = True
+want_viewer_nailed_to_front_of_vehicle = False
 
 # Radar
 want_radar_sensor = False
