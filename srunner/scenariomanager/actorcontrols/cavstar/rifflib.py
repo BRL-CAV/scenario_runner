@@ -1,12 +1,9 @@
 #!/usr/bin/python3
-#
-#      Copyright (c) Fusion Processing Ltd 2018-2021
-#      All rights reserved.
-#
 import ctypes, os
 
 SCENARIO_RUNNER_ROOT = os.getenv('SCENARIO_RUNNER_ROOT')
 
+#if os.name == 'posix': rifflib = ctypes.CDLL( '../cavstar/riff_comms/rifflib/librifflib.so' )
 if os.name == 'posix': rifflib = ctypes.CDLL( SCENARIO_RUNNER_ROOT + '/srunner/scenariomanager/actorcontrols/cavstar/librifflib.so' )
 if os.name == 'nt': rifflib = ctypes.CDLL( 'x64/Release/rifflib.dll' )
 
