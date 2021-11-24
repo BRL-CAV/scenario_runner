@@ -575,7 +575,7 @@ def RiffClients():
 
     # Were not expecting to receive anything from these only write back to controller so keep them flushed
     gnss_riff_message = gnss_riff_client.receive()
-    mems_riff_message = gnss_riff_client.receive()
+    mems_riff_message = mems_riff_client.receive()
     lane_riff_message = lane_riff_client.receive()
     radar_riff_message = radar_riff_client.receive()
 
@@ -832,15 +832,15 @@ def RunStep(world, the_map, viewer, vehicle):
         # Carla steer is +ve right
         # So we will adopt +ve left and give carla -ve of it
 
-        # Need to convert steer torque to steer angle.
-        # Integrate torque with dt (carla_time_delta) - a torque of 0.2 gives one radian per second on the van
+        # A torque of 1.0 would one radian per second on the van, but limited to 0.35
+        road_wheel_angle_rate = min( 0.35, max( -0.35, req_steer_torque ) )
 
-        veh_throttle = req_throttle
-        veh_brake    = req_brake
-        veh_steer    += req_steer_torque * carla_time_delta / (0.2 * steering_lock_angle_rad)
+        # Need to convert angle rate to steer angle
+        # Integrate angle rate with dt (carla_time_delta)
+        veh_steer += road_wheel_angle_rate * carla_time_delta / steering_lock_angle_rad
 
-        veh_throttle = min( 1.0, max(  0.0, veh_throttle ) )
-        veh_brake    = min( 1.0, max(  0.0, veh_brake ) )
+        veh_throttle = min( 1.0, max(  0.0, req_throttle ) )
+        veh_brake    = min( 1.0, max(  0.0, req_brake ) )
         veh_steer    = min( 1.0, max( -1.0, veh_steer ) )
 
         #if tron:
@@ -973,10 +973,8 @@ def RunStep(world, the_map, viewer, vehicle):
                 mems_riff_message.data   = ctypes.byref(  riff_MNC_SMSD )
                 mems_riff_client.write( mems_riff_message );
 
-                # From cavstar.conf
-                wheelbase = 4.0
-                turn = veh_steer * steering_lock_angle_rad
-                yaw_steer = veh_spd * math.tan( turn ) / wheelbase
+                #turn = veh_steer * steering_lock_angle_rad
+                #yaw_steer = veh_spd * math.tan( turn ) / veh_wheelbase
                 #print( 'GyroZ/Yaw/s, turn, Spd, TA/s:', round( -data.gyroscope.z,5 ), round( turn, 5), round( veh_spd,3 ), round( yaw_steer, 5 ) )
                 #print( 'Send SMSD: Acc, Gyro: ', round(data.accelerometer.x,3), round(data.accelerometer.y,3), round(data.accelerometer.z,3), round(data.gyroscope.x,3), round(data.gyroscope.y,3), round(data.gyroscope.z,3) )
 
