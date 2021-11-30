@@ -29,7 +29,13 @@ class CavstarControl(BasicControl):
     """
 
     def __init__(self, actor, args=None):
+        
+        self.actor = actor
+        
         super(CavstarControl, self).__init__(actor)
+        
+        print("Reseting vechicle controls)
+        actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=0.0, hand_brake=False, reverse=False, manual_gear_shift=False, gear=0))
 
         self.client = CarlaDataProvider.get_client()
         self.world = CarlaDataProvider.get_world()
@@ -73,4 +79,6 @@ class CavstarControl(BasicControl):
         The control loop and setting the actor controls is implemented externally.
         """
         CAVstar.RunStep(self.world, self.the_map, self.viewer, self._actor)
+        control_state = self.actor.get_control()
+        print("Steering angle: %f" % control_state.steer)
         pass
