@@ -35,7 +35,7 @@ class CavstarControl(BasicControl):
         super(CavstarControl, self).__init__(actor)
         
         print("Reseting vechicle controls")
-        actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=0.0, hand_brake=False, reverse=False, manual_gear_shift=False, gear=0))
+        actor.apply_control(CarlaDataProvider.VehicleControl(throttle=0.0, steer=0.0, brake=0.0, hand_brake=False, reverse=False, manual_gear_shift=False, gear=0))
 
         self.client = CarlaDataProvider.get_client()
         self.world = CarlaDataProvider.get_world()
