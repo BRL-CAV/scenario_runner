@@ -80,5 +80,4 @@ class CavstarControl(BasicControl):
         """
         CAVstar.RunStep(self.world, self.the_map, self.viewer, self._actor)
         control_state = self.actor.get_control()
-        print("Steering angle: %f" % control_state.steer)
         pass
