@@ -16,7 +16,6 @@ tron = True
 
 # IP of riff servers to connect to
 server_ip_addr = '91.227.124.10'
-#server_ip_addr = '127.0.0.1'
 
 # Were doing synchronous time
 carla_time = 0
@@ -247,7 +246,7 @@ mems_riff_client         = rifflib.RiffClient( 6164, server_ip_addr, 5, 'carla n
 lane_riff_client         = rifflib.RiffClient( 6166, server_ip_addr, 5, 'carla non critical lane' )
 radar_riff_client        = rifflib.RiffClient( 6167, server_ip_addr, 5, 'carla non critical radar' )
 veh_control_riff_client  = rifflib.RiffClient( 6168, server_ip_addr, 5, 'carla critical veh ctl' )
-simtime_riff_client      = rifflib.RiffClient( 6170, server_ip_addr, 5, 'carla critical simtime' )
+simtime_riff_client      = rifflib.RiffClient( 6150, server_ip_addr, 5, 'carla critical simtime' )
 
 
 ####################################################################################################
